@@ -118,26 +118,28 @@ get 'do/follow/:name' => sub {
     return;
   }
 
-  warn("code: $code\n");
   $client->authorize(access_code => $code);
 
   # get the existing accounts we're following now (Mastodon::Entity::Account)
   my $existing_accounts = $client->following();
+  my $n_old = @$existing_accounts;
 
   # get the new accounts we're supposed to follow (strings)
   my %accts = map { $_ => 1 } split(" ", read_file("$dir/$name.txt"));
+  my $n_list = keys %accts;
 
   # remove the ones we already follow
   for my $account (@$existing_accounts) {
     delete($accts{$account->{acct}});
   }
+  my $n_new = keys %accts;
 
   # nothing to do if we don't have any accounts left
   # if (not keys %accts) {
     $c->render(template => 'follow',
-	       n_old => scalar(@$existing_accounts),
-	       n_list => scalar(keys %accts),
-	       n_new => 1);
+	       n_old  => $n_old,
+	       n_list => $n_list,
+	       n_new  => $n_new);
     return;
   # }
   # get the lists for this account
