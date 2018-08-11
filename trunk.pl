@@ -43,15 +43,19 @@ post '/auth' => sub {
   my $account = $c->param('account');
   my $action = $c->param('action');
   my $name = $c->param('name');
-  my $uri = $c->url_for("do_$action", name => $name);
-  my $result = oauth($c, $account, $uri);
-  $c->redirect_to($result) if $result;
+  my $n = int(rand(1000000));
+  my $uri = $c->url_for("do_$action", name => $name)
+      ->query(session => $n)->to_abs;
+  my $client = client($c, $account, $uri);
+  $cache->set($n => {account => $account, uri => $uri});
+  $c->redirect_to($client->authorization_url()) if $client;
+  $c->render(template => 'error', msg => "Login failed!");
 } => 'auth';
 
-sub oauth {
+sub client {
   my $c = shift;
   my $account = shift;
-  my $uri = shift;
+  my $uri = shift; # optional, only for login
   my ($who, $where) = split(/@/, $account);
   if (not $where) {
     $c->render(template => 'error',
@@ -63,36 +67,86 @@ sub oauth {
   my $file = "$dir/credentials";
   if (open(my $fh, "<", $file)) {
     while (my $line = <$fh>) {
+      next unless $line;
       ($instance, $client_id, $client_secret) = split(" ", $line);
       last if $instance eq $where;
     }
   }
   my %attributes = (
     instance	    => $where,
-    scopes          => ['read', 'write', 'follow'],
+    scopes          => ['follow', 'read', 'write'],
     name	    => 'Trunk',
-    website	    => 'https://communitywiki.org/trunk',
-    redirect_uri    => "$uri",
-    coerce_entities => 1,
-  );
+    website	    => 'https://communitywiki.org/trunk', );
+  $attributes{redirect_uri} = "$uri" if $uri; # coerce into string
   my $client;
   if ($instance and $instance eq $where) {
-    $attributes{client_id}	= $client_id;
+    $attributes{client_id}     = $client_id;
     $attributes{client_secret} = $client_secret;
     $client = Mastodon::Client->new(%attributes);
-  } else {
+  } elsif ($uri) {
     $client = Mastodon::Client->new(%attributes);
     $client->register();
     open(my $fh, ">>", $file) || die "Cannot write $file: $!";
-    print $fh join(" ", $instance, $client_id, $client_secret) . "\n";
+    print $fh join(" ", $client->instance->title,
+		   $client->client_id,
+		   $client->client_secret) . "\n";
     close($fh) || die "Cannot close $file: $!";
   }
+  return $client;
 }
 
-post 'do/follow/:name' => sub {
+get 'do/follow/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
-  $c->render(text => template => 'login', name => $name, action => 'follow');
+  my $code = $c->param('code'); # this is the authorization code!
+  my $n = $c->param('session'); # this is the key in our cache
+  my $data = $cache->get($n);
+
+  if (!$data) {
+    $c->render(template => 'error',
+	       msg => "The session expired.");
+    return;
+  }
+
+  my $account = $data->{account};
+  my $uri = $data->{uri};
+  my $client = client($c, $account, $uri);
+
+  if (!$client) {
+    $c->render(template => 'error',
+	       msg => "Something about this login went wrong.");
+    return;
+  }
+
+  warn("code: $code\n");
+  $client->authorize(access_code => $code);
+
+  # get the existing accounts we're following now (Mastodon::Entity::Account)
+  my $existing_accounts = $client->following();
+
+  # get the new accounts we're supposed to follow (strings)
+  my %accts = map { $_ => 1 } split(" ", read_file("$dir/$name.txt"));
+
+  # remove the ones we already follow
+  for my $account (@$existing_accounts) {
+    delete($accts{$account->{acct}});
+  }
+
+  # nothing to do if we don't have any accounts left
+  # if (not keys %accts) {
+    $c->render(template => 'follow',
+	       n_old => scalar(@$existing_accounts),
+	       n_list => scalar(keys %accts),
+	       n_new => 1);
+    return;
+  # }
+  # get the lists for this account
+  # generate a unique list name
+  # create the list
+  # follow each new acount and add them to the new list
+  # done!
+  # $c->render(template => 'error',
+  # 	     msg => "FIXME: This hasn't been implemented, yet.");
 } => 'do_follow';
 
 app->defaults(layout => 'default');
@@ -117,6 +171,17 @@ are logged in, we will proceed to <%= $action %>
 %= submit_button
 % end
 
+
+@@ follow.html.ep
+% title 'Follow a List';
+<h1><%= $name %></h1>
+
+
+<p>You were following <%= $n_old %> accounts and the list contained <%= $n_list
+%> accounts. Ignoring duplicates, you are now following <%= $n_new %> new
+accounts in the list <em><%= $name %></em>.</p>
+
+<p>Enjoy! 👍</p>
 
 @@ grab.html.ep
 % title 'Grab a List';
