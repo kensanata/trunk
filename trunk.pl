@@ -28,7 +28,7 @@ get '/' => sub {
 get '/grab/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
-  my @accounts = sort split(" ", read_file("$name.txt"));
+  my @accounts = sort split(" ", read_file("$dir/$name.txt"));
   $c->render(template => 'grab', name => $name, accounts => \@accounts);
 } => 'grab';
 
@@ -223,6 +223,7 @@ li { display: block; }
 <hr>
 <p>
 <a href="https://communitywiki.org/trunk">Trunk</a>&#x2003;
+<a href="https://alexschroeder.ch/cgit/trunk/about/">Source</a>&#x2003;
 <a href="https://alexschroeder.ch/wiki/Contact">Alex Schroeder</a>
 </body>
 </html>
