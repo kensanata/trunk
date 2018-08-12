@@ -48,8 +48,11 @@ post '/auth' => sub {
       ->query(session => $n)->to_abs;
   my $client = client($c, $account, $uri);
   $cache->set($n => {account => $account, uri => $uri});
-  $c->redirect_to($client->authorization_url()) if $client;
-  $c->render(template => 'error', msg => "Login failed!");
+  if ($client) {
+    $c->redirect_to($client->authorization_url());
+  } else {
+    $c->render(template => 'error', msg => "Login failed!");
+  }
 } => 'auth';
 
 sub client {
@@ -120,35 +123,26 @@ get 'do/follow/:name' => sub {
 
   $client->authorize(access_code => $code);
 
-  # get the existing accounts we're following now (Mastodon::Entity::Account)
-  my $existing_accounts = $client->following();
-  my $n_old = @$existing_accounts;
-
   # get the new accounts we're supposed to follow (strings)
-  my %accts = map { $_ => 1 } split(" ", read_file("$dir/$name.txt"));
-  my $n_list = keys %accts;
+  my @accts = split(" ", read_file("$dir/$name.txt"));
 
-  # remove the ones we already follow
-  for my $account (@$existing_accounts) {
-    delete($accts{$account->{acct}});
+  my @ids;
+  for my $acct(@accts) {
+    # and follow it
+    my $account = $client->remote_follow($acct);
+    # and remember to add it to the list
+    push(@ids, $account->{id});
   }
-  my $n_new = keys %accts;
 
-  # nothing to do if we don't have any accounts left
-  # if (not keys %accts) {
-    $c->render(template => 'follow',
-	       n_old  => $n_old,
-	       n_list => $n_list,
-	       n_new  => $n_new);
-    return;
-  # }
-  # get the lists for this account
-  # generate a unique list name
   # create the list
-  # follow each new acount and add them to the new list
+  my $list = $client->post('lists', {title => $name});
+
+  # and add the new accounts we're following to the new list
+  my $id = $list->{id};
+  $client->post("lists/$id/accounts" => {account_ids => \@ids});
+
   # done!
-  # $c->render(template => 'error',
-  # 	     msg => "FIXME: This hasn't been implemented, yet.");
+  $c->render(template => 'follow', name => $name, accts => \@accts);
 } => 'do_follow';
 
 app->defaults(layout => 'default');
@@ -178,12 +172,28 @@ are logged in, we will proceed to <%= $action %>
 % title 'Follow a List';
 <h1><%= $name %></h1>
 
+<p>We created the <em><%= $name %></em> list for you. Note that if you visit
+this list in the Mastodon web client, it will will appear empty. In fact, this
+is what it will say:</p>
 
-<p>You were following <%= $n_old %> accounts and the list contained <%= $n_list
-%> accounts. Ignoring duplicates, you are now following <%= $n_new %> new
-accounts in the list <em><%= $name %></em>.</p>
+<blockquote>"There is nothing in this list yet. When members of this list post
+new statuses, they will appear here."</blockquote>
 
-<p>Enjoy! 👍</p>
+<p>Click on the button with the three sliders ("Show settings") and then on
+"Edit lists" and only then will you see the people in the list!</p>
+
+<P>Enjoy! 👍</p>
+
+<ul>
+% for my $account (@$accts) {
+<li>
+% my ($username, $instance) = split(/@/, $account);
+<a href="https://<%= $instance %>/@<%= $username %>">
+%= $account
+</a>
+</li>
+% }
+</ul>
 
 @@ grab.html.ep
 % title 'Grab a List';
@@ -196,24 +206,9 @@ not already following into this list.</p>
 
 %= button_to "Follow $name" => follow => {name => $name } => (class => 'button')
 
-<p>If you've made a mistake, you can still undo it. If you click the button
-below to unfollow them all, we will unfollow all the people on your <em><%=
-$name %></em> list, and we'll delete your list if it is empty. Thus, if you
-followed some of these people before, they didn't get put on your <em><%= $name
-%></em> list when you clicked the button above, and so you'll still be following
-them if you click the button bellow. No problem. If you added extra people to
-your <em><%= $name %></em> list, then these people are not on the list below and
-therefore they will not get removed from your <em><%= $name %></em> list. Again,
-no problem. The only problem we can't fix is if you followed some of these
-people before and then added them to your <em><%= $name %></em> list. Since they
-are in your <em><%= $name %></em> list, and they are on the list below, clicking
-the button will unfollow these people. I still think it's the best we can do,
-however.<p>
-
-%= button_to "Unfollow $name" => unfollow => {name => $name } => (class => 'button')
-
-<p>And finally, the list of accounts. You can of course pick and
-choose as well, using Mastodon's <em>remote follow</em> feature.</p>
+<p>Here's the list of accounts for the <em><%= $name %></em> list. You can of
+course pick and choose instead of following them all, using Mastodon's
+<em>remote follow</em> feature.</p>
 
 <ul>
 % for my $account (@$accounts) {
@@ -258,7 +253,7 @@ choose as well, using Mastodon's <em>remote follow</em> feature.</p>
 %= stylesheet begin
 body {
   padding: 1em;
-  max-width: 72em;
+  max-width: 72ex;
   font-size: 18pt;
   font-family: "DejaVu Serif", serif;
 }
