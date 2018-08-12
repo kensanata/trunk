@@ -18,7 +18,7 @@ sub to_markdown {
 get '/' => sub {
   my $c = shift;
   my $md = to_markdown('index.md');
-  my @names = sort map {
+  my @names = sort { lc($a) cmp lc($b) } map {
     my ($name, $path, $suffix) = fileparse($_, '.txt');
     $name;
   } <$dir/*.txt>;
@@ -28,7 +28,7 @@ get '/' => sub {
 get '/grab/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
-  my @accounts = sort split(" ", read_file("$dir/$name.txt"));
+  my @accounts = sort { lc($a) cmp lc($b) } split(" ", read_file("$dir/$name.txt"));
   $c->render(template => 'grab', name => $name, accounts => \@accounts);
 } => 'grab';
 
