@@ -202,7 +202,8 @@ new statuses, they will appear here."</blockquote>
 <p>Below are some people for you to follow. If you click the button below in
 order to follow them all, what will happen is that we will create a list called
 <em><%= $name %></em> for your account and we'll put any of these that you're
-not already following into this list.</p>
+not already following into this list. If you already have a list with the same
+name, don't worry: you can have lists sharing the same name.</p>
 
 %= button_to "Follow $name" => follow => {name => $name } => (class => 'button')
 
