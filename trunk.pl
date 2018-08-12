@@ -98,7 +98,7 @@ sub client {
   return $client;
 }
 
-get 'do/follow/:name' => sub {
+any 'do/follow/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
   my $code = $c->param('code'); # this is the authorization code!
