@@ -18,11 +18,19 @@ sub to_markdown {
 get '/' => sub {
   my $c = shift;
   my $md = to_markdown('index.md');
-  my @names = sort { lc($a) cmp lc($b) } map {
-    my ($name, $path, $suffix) = fileparse($_, '.txt');
-    $name;
-  } <$dir/*.txt>;
-  $c->render(template => 'index', md => $md, names => \@names);
+  my @lists;
+  my @empty_lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my ($name, $path, $suffix) = fileparse($file, '.txt');
+    my $size = -s $file;
+    if ($size) {
+      push(@lists, $name);
+    } else {
+      push(@empty_lists, $name);
+    }
+  }
+  $c->render(template => 'index', md => $md,
+	     lists => \@lists, empty_lists => \@empty_lists);
 } => 'main';
 
 get '/grab/:name' => sub {
@@ -228,7 +236,19 @@ course pick and choose instead of following them all, using Mastodon's
 <%== $md %>
 
 <ul>
-% for my $name (@$names) {
+% for my $name (@$lists) {
+<li>
+%= link_to grab => {name => $name} => begin
+%= $name
+% end
+</li>
+% }
+</ul>
+
+Empty lists:
+
+<ul>
+% for my $name (@$empty_lists) {
 <li>
 %= link_to grab => {name => $name} => begin
 %= $name
