@@ -12,7 +12,7 @@ my $cache = Mojo::Cache->new(max_keys => 50);
 sub to_markdown {
   my $file = shift;
   my $md = read_file("$dir/$file") || die "Cannot open $dir/$file: $!";
-  return markdown($md);
+  return markdown(decode_utf8($md));
 }
 
 get '/' => sub {
