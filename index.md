@@ -22,3 +22,5 @@ this cache is not saved to disk.
 If you want to be added or removed from a list, or if you'd like to
 see another list, or if you have any other questions and concerns,
 please [contact me via Mastodon](https://octodon.social/@kensanata).
+Note that you cannot volunteer other people. People have to volunteer
+themselves. Please encourage them to contact me!
