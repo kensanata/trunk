@@ -1,13 +1,11 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
-use Mojo::Cache;
 use Text::Markdown 'markdown';
 use File::Basename;
 use File::Slurp;
 use Mastodon::Client;
 use Encode qw(decode_utf8);
 my $dir = "/home/alex/src/trunk"; # FIXME
-my $cache = Mojo::Cache->new(max_keys => 50);
 
 sub to_markdown {
   my $file = shift;
@@ -17,6 +15,22 @@ sub to_markdown {
 
 get '/' => sub {
   my $c = shift;
+  # if we're here because of the redirect uri
+  my $code = $c->param('code');
+  if ($code) {
+    my $action = $c->cookie('action');
+    my $account = $c->cookie('account');
+    my $name = $c->cookie('name');
+    if ($action) {
+      my $url = $c->url_for("do_$action")->query(code => $code, account => $account, name => $name);
+      $c->redirect_to($url);
+    } else {
+      $c->render(template => 'error',
+		 msg => "We got back an authorization code "
+		 . "but the cookie was lostand now we don't know what to do!");
+    }
+    return;
+  }
   my $md = to_markdown('index.md');
   my @lists;
   my @empty_lists;
@@ -43,6 +57,7 @@ get '/grab/:name' => sub {
 get '/follow/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
+  # this will send us to /auth
   $c->render(template => 'login', name => $name, action => 'follow');
 } => 'follow';
 
@@ -51,11 +66,11 @@ post '/auth' => sub {
   my $account = $c->param('account');
   my $action = $c->param('action');
   my $name = $c->param('name');
-  my $n = int(rand(1000000));
-  my $uri = $c->url_for("do_$action", name => $name)
-      ->query(session => $n)->to_abs;
+  my $uri = $c->url_for("main")->to_abs;
+  $c->cookie(account => $account, {expires => time + 60});
+  $c->cookie(action => $action, {expires => time + 60});
+  $c->cookie(name => $name, {expires => time + 60});
   my $client = client($c, $account, $uri);
-  $cache->set($n => {account => $account, uri => $uri});
   if ($client) {
     $c->redirect_to($client->authorization_url());
   } else {
@@ -66,7 +81,7 @@ post '/auth' => sub {
 sub client {
   my $c = shift;
   my $account = shift;
-  my $uri = shift; # optional, only for login
+  my $uri = shift;
   my ($who, $where) = split(/@/, $account);
   if (not $where) {
     $c->render(template => 'error',
@@ -88,7 +103,7 @@ sub client {
     scopes          => ['follow', 'read', 'write'],
     name	    => 'Trunk',
     website	    => 'https://communitywiki.org/trunk', );
-  $attributes{redirect_uri} = "$uri" if $uri; # coerce into string
+  $attributes{redirect_uri} = "$uri"; # coerce into string
   my $client;
   if ($instance and $instance eq $where) {
     $attributes{client_id}     = $client_id;
@@ -98,7 +113,9 @@ sub client {
     $client = Mastodon::Client->new(%attributes);
     $client->register();
     open(my $fh, ">>", $file) || die "Cannot write $file: $!";
-    print $fh join(" ", $client->instance->title,
+    my $instance = $client->instance->uri;
+    $instance =~ s!^https://!!;
+    print $fh join(" ", $instance,
 		   $client->client_id,
 		   $client->client_secret) . "\n";
     close($fh) || die "Cannot close $file: $!";
@@ -106,32 +123,31 @@ sub client {
   return $client;
 }
 
-get 'do/follow/:name' => sub {
+get 'do/follow' => sub {
   my $c = shift;
-  my $name = $c->param('name');
-  my $code = $c->param('code'); # this is the authorization code!
-  my $n = $c->param('session'); # this is the key in our cache
-  my $data = $cache->get($n);
 
+  my $code = $c->param('code'); # this is the authorization code!
   if (!$code) {
     $c->render(template => 'error',
 	       msg => "We failed to get an authorization code.");
     return;
   }
-  if (!$n) {
+
+  my $account = $c->param('account');
+  if (!$account) {
     $c->render(template => 'error',
-	       msg => "We failed to get a session id.");
+	       msg => "We did not find the account in the cookie.");
     return;
   }
 
-  if (!$data) {
+  my $name = $c->param('name');
+  if (!$name) {
     $c->render(template => 'error',
-	       msg => "The session expired.");
+	       msg => "We did not find the list name in the cookie.");
     return;
   }
 
-  my $account = $data->{account};
-  my $uri = $data->{uri};
+  my $uri = $c->url_for("main")->to_abs;
   my $client = client($c, $account, $uri);
 
   if (!$client) {
@@ -140,7 +156,15 @@ get 'do/follow/:name' => sub {
     return;
   }
 
-  $client->authorize(access_code => $code);
+  warn("Authorize");
+  eval {
+    $client->authorize(access_code => $code);
+  };
+  if ($@) {
+    $c->render(template => 'error',
+	       msg => "Authorisation failed!");
+    return;
+  }
 
   # get the new accounts we're supposed to follow (strings)
   my @accts = split(" ", read_file("$dir/$name.txt"));
@@ -148,14 +172,20 @@ get 'do/follow/:name' => sub {
   my @ids;
   for my $acct(@accts) {
     # and follow it
-    my $account = $client->remote_follow($acct);
-    # and remember to add it to the list
-    push(@ids, $account->{id});
+    warn("Remote follow $acct");
+    eval {
+      my $account = $client->remote_follow($acct);
+      # and remember to add it to the list
+      push(@ids, $account->{id});
+    };
+    # ignore errors: if we're already subscribed then that's fine
   }
 
+  warn("Create $name");
   # create the list
   my $list = $client->post('lists', {title => $name});
 
+  warn("Add @ids");
   # and add the new accounts we're following to the new list
   my $id = $list->{id};
   $client->post("lists/$id/accounts" => {account_ids => \@ids});
