@@ -106,12 +106,23 @@ sub client {
   return $client;
 }
 
-any 'do/follow/:name' => sub {
+get 'do/follow/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
   my $code = $c->param('code'); # this is the authorization code!
   my $n = $c->param('session'); # this is the key in our cache
   my $data = $cache->get($n);
+
+  if (!$code) {
+    $c->render(template => 'error',
+	       msg => "We failed to get an authorization code.");
+    return;
+  }
+  if (!$n) {
+    $c->render(template => 'error',
+	       msg => "We failed to get a session id.");
+    return;
+  }
 
   if (!$data) {
     $c->render(template => 'error',
