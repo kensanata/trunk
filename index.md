@@ -25,12 +25,9 @@ August 2018 we just launched so the lists are still very short.
 If you want to be added or removed from a list, or if you'd like to
 see another list, or if you have any other questions and concerns,
 please [contact me via Mastodon](https://octodon.social/@kensanata).
-<<<<<<< HEAD
 Note that you cannot volunteer other people. People have to volunteer
 themselves. Please encourage them to contact me!
-=======
 
 (Also, since this is the early days, please know that there are
 downtimes when I'm desperately trying to fix things, probably right
 now! 😢)
->>>>>>> index.md: probably borked

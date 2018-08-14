@@ -339,10 +339,12 @@ form.button input, a.button {
   border: 0;
 }
 li { display: block; margin-bottom: 20pt; }
+.logo {float: right; }
 % end
 <meta name="viewport" content="width=device-width">
 </head>
 <body>
+<img class="logo" src="trunk-logo.jpg" />
 <%= content %>
 <hr>
 <p>
