@@ -200,6 +200,7 @@ get '/logo' => sub {
 };
 
 app->defaults(layout => 'default');
+app->defaults(logo => url_for('logo'));
 app->start;
 
 __DATA__
@@ -349,7 +350,7 @@ li { display: block; margin-bottom: 20pt; }
 <meta name="viewport" content="width=device-width">
 </head>
 <body>
-<img class="logo" src="logo" />
+<img class="logo" src="<%= $logo %>" />
 <%= content %>
 <hr>
 <p>
