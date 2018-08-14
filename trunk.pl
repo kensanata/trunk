@@ -156,7 +156,6 @@ get 'do/follow' => sub {
     return;
   }
 
-  warn("Authorize");
   eval {
     $client->authorize(access_code => $code);
   };
@@ -172,7 +171,6 @@ get 'do/follow' => sub {
   my @ids;
   for my $acct(@accts) {
     # and follow it
-    warn("Remote follow $acct");
     eval {
       my $account = $client->remote_follow($acct);
       # and remember to add it to the list
@@ -181,11 +179,9 @@ get 'do/follow' => sub {
     # ignore errors: if we're already subscribed then that's fine
   }
 
-  warn("Create $name");
   # create the list
   my $list = $client->post('lists', {title => $name});
 
-  warn("Add @ids");
   # and add the new accounts we're following to the new list
   my $id = $list->{id};
   $client->post("lists/$id/accounts" => {account_ids => \@ids});
