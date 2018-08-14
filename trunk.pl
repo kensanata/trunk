@@ -297,7 +297,7 @@ form.button input, a.button {
   font-weight: 500;
   border: 0;
 }
-li { display: block; }
+li { display: block; margin-bottom: 20pt; }
 % end
 <meta name="viewport" content="width=device-width">
 </head>
