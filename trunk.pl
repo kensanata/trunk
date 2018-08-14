@@ -1,17 +1,19 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
-use Text::Markdown 'markdown';
-use File::Basename;
-use File::Slurp;
 use Mastodon::Client;
+use Mojo::File;
+use Text::Markdown 'markdown';
 use Encode qw(decode_utf8);
 
 my $dir = "/home/alex/src/trunk";            # FIXME
 my $uri = "https://communitywiki.org/trunk"; # FIXME
 
+plugin 'RenderFile';
+
 sub to_markdown {
   my $file = shift;
-  my $md = read_file("$dir/$file") || die "Cannot open $dir/$file: $!";
+  my $path = Mojo::File->new("$dir/$file");
+  my $md = $path->slurp || die "Cannot open $dir/$file: $!";
   return markdown(decode_utf8($md));
 }
 
@@ -37,8 +39,8 @@ get '/' => sub {
   my @lists;
   my @empty_lists;
   for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
-    my ($name, $path, $suffix) = fileparse($file, '.txt');
     my $size = -s $file;
+    my $name = Mojo::File->new($file)->basename('.txt');
     if ($size) {
       push(@lists, $name);
     } else {
@@ -52,7 +54,8 @@ get '/' => sub {
 get '/grab/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
-  my @accounts = sort { lc($a) cmp lc($b) } split(" ", read_file("$dir/$name.txt"));
+  my $path = Mojo::File->new("$dir/$name.txt");
+  my @accounts = sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
   $c->render(template => 'grab', name => $name, accounts => \@accounts);
 } => 'grab';
 
@@ -166,7 +169,8 @@ get 'do/follow' => sub {
   }
 
   # get the new accounts we're supposed to follow (strings)
-  my @accts = split(" ", read_file("$dir/$name.txt"));
+  my $path = Mojo::File->new("$dir/$name.txt");
+  my @accts = split(" ", $path->slurp);
 
   my @ids;
   for my $acct(@accts) {
@@ -189,6 +193,11 @@ get 'do/follow' => sub {
   # done!
   $c->render(template => 'follow', name => $name, accts => \@accts);
 } => 'do_follow';
+
+get '/logo' => sub {
+  my $c = shift;
+  $c->render_file('filepath' => "$dir/trunk-logo.jpg");
+};
 
 app->defaults(layout => 'default');
 app->start;
@@ -335,12 +344,12 @@ form.button input, a.button {
   border: 0;
 }
 li { display: block; margin-bottom: 20pt; }
-.logo {float: right; }
+.logo {float: right; max-height: 300px; }
 % end
 <meta name="viewport" content="width=device-width">
 </head>
 <body>
-<img class="logo" src="trunk-logo.jpg" />
+<img class="logo" src="/logo" />
 <%= content %>
 <hr>
 <p>
