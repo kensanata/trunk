@@ -5,7 +5,9 @@ use File::Basename;
 use File::Slurp;
 use Mastodon::Client;
 use Encode qw(decode_utf8);
-my $dir = "/home/alex/src/trunk"; # FIXME
+
+my $dir = "/home/alex/src/trunk";            # FIXME
+my $uri = "https://communitywiki.org/trunk"; # FIXME
 
 sub to_markdown {
   my $file = shift;
@@ -66,11 +68,10 @@ post '/auth' => sub {
   my $account = $c->param('account');
   my $action = $c->param('action');
   my $name = $c->param('name');
-  my $uri = $c->url_for("main")->to_abs;
   $c->cookie(account => $account, {expires => time + 60});
   $c->cookie(action => $action, {expires => time + 60});
   $c->cookie(name => $name, {expires => time + 60});
-  my $client = client($c, $account, $uri);
+  my $client = client($c, $account);
   if ($client) {
     $c->redirect_to($client->authorization_url());
   } else {
@@ -81,7 +82,6 @@ post '/auth' => sub {
 sub client {
   my $c = shift;
   my $account = shift;
-  my $uri = shift;
   my ($who, $where) = split(/@/, $account);
   if (not $where) {
     $c->render(template => 'error',
@@ -100,16 +100,17 @@ sub client {
   }
   my %attributes = (
     instance	    => $where,
+    redirect_uri    => $uri,
     scopes          => ['follow', 'read', 'write'],
     name	    => 'Trunk',
-    website	    => 'https://communitywiki.org/trunk', );
-  $attributes{redirect_uri} = "$uri"; # coerce into string
+    website	    => $uri,
+ );
   my $client;
   if ($instance and $instance eq $where) {
     $attributes{client_id}     = $client_id;
     $attributes{client_secret} = $client_secret;
     $client = Mastodon::Client->new(%attributes);
-  } elsif ($uri) {
+  } else {
     $client = Mastodon::Client->new(%attributes);
     $client->register();
     open(my $fh, ">>", $file) || die "Cannot write $file: $!";
@@ -147,8 +148,7 @@ get 'do/follow' => sub {
     return;
   }
 
-  my $uri = $c->url_for("main")->to_abs;
-  my $client = client($c, $account, $uri);
+  my $client = client($c, $account);
 
   if (!$client) {
     $c->render(template => 'error',
