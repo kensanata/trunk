@@ -200,7 +200,6 @@ get '/logo' => sub {
 };
 
 app->defaults(layout => 'default');
-app->defaults(logo => url_for('logo'));
 app->start;
 
 __DATA__
