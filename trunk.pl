@@ -349,7 +349,7 @@ li { display: block; margin-bottom: 20pt; }
 <meta name="viewport" content="width=device-width">
 </head>
 <body>
-<img class="logo" src="./logo" />
+%= image 'logo', alt => '', class => 'logo'
 <%= content %>
 <hr>
 <p>
