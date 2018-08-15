@@ -205,7 +205,7 @@ get 'do/follow' => sub {
 
 get '/logo' => sub {
   my $c = shift;
-  $c->render_file('filepath' => "$dir/trunk-logo.jpg");
+  $c->render_file('filepath' => "$dir/trunk-logo.png");
 };
 
 

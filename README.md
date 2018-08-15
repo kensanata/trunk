@@ -7,6 +7,10 @@ free, open-source, decentralized microblogging network.
 Issues, feature requests and all that: use the
 [Software Wiki](https://alexschroeder.ch/software/Trunk).
 
+## Logo
+
+Logo kindly donated by [Jens Reuterberg](https://www.ohyran.se/).
+
 ## Installation
 
 If you want to install it, you need a reasonable Perl installation. Use `cpanm` to install the following:
