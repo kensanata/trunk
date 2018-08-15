@@ -14,25 +14,6 @@ my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'info');
 plugin 'RenderFile';
 plugin 'Config' => {default => {users => {}}};
 
-plugin 'authentication', {
-    autoload_user => 1,
-    load_user => sub {
-        my ($self, $username) = @_;
-        return {
-	  'username' => $username,
-	} if app->config('users')->{$username};
-        return undef;
-    },
-    validate_user => sub {
-        my ($self, $username, $password) = @_;
-	if (app->config('users')->{$username}
-	    && $password eq app->config('users')->{$username}) {
-	  return $username;
-	}
-        return undef;
-    },
-};
-
 sub to_markdown {
   my $file = shift;
   my $path = Mojo::File->new("$dir/$file");
@@ -232,20 +213,27 @@ get '/admin' => sub {
   my $c = shift;
   $c->render();
 };
-  
 
-get '/add' => sub {
-  my $c = shift;
-  if (not $c->is_user_authenticated()) {
-    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
-  }
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
-  }
-  $c->render(template => 'add', lists => \@lists);
+
+plugin 'authentication', {
+    autoload_user => 1,
+    load_user => sub {
+        my ($self, $username) = @_;
+        return {
+	  'username' => $username,
+	} if app->config('users')->{$username};
+        return undef;
+    },
+    validate_user => sub {
+        my ($self, $username, $password) = @_;
+	if (app->config('users')->{$username}
+	    && $password eq app->config('users')->{$username}) {
+	  return $username;
+	}
+        return undef;
+    },
 };
+
 
 get '/login' => sub {
   my $c = shift;
@@ -262,6 +250,28 @@ get '/login' => sub {
   }
   $c->render(template => 'login', action => $action);
 };
+
+
+get "/logout" => sub {
+  my $self = shift;
+  $self->logout();
+  $self->redirect_to('main');
+} => 'logout';
+
+
+get '/add' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+  }
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(template => 'add', lists => \@lists);
+};
+
 
 sub backup {
   my $path = shift;
@@ -298,6 +308,7 @@ post '/do/add' => sub {
   $account =~ s/^@//;   # trim extra @ at the beginning
   $account =~ s/^\s+//; # trim leading whitespace
   $account =~ s/\s+$//; # trim trailing whitespace
+  $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
   my $hash = $c->req->body_params->to_hash;
   delete $hash->{account};
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
@@ -308,6 +319,47 @@ post '/do/add' => sub {
   }
   $c->render(template => 'do_add', account => $account, lists => \@lists);
 } => 'do_add';
+
+
+get '/add_list' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+  }
+  $c->render(template => 'add_list');
+};
+
+
+post '/do/list' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+  }
+  my $user = $c->current_user->{username};
+  my $name = $c->param('name');
+  $name =~ s/^\s+//; # trim leading whitespace
+  $name =~ s/\s+$//; # trim trailing whitespace
+
+  if (not $name) {
+    $c->render(template => 'error',
+	       msg => "Please provide a list name.");
+    return;
+  }
+
+  my $path = Mojo::File->new("$dir/$name.txt");
+  if (-e $path) {
+    $c->render(template => 'error',
+	       msg => "This list already exists.");
+    return;
+  }
+
+  $log->info("$user created $name");
+  my $fh = $path->open(">>:encoding(UTF-8)") || die "Cannot write to $path: $!";
+  close($fh);
+
+  $c->render(template => 'do_add_list', name => $name);
+} => 'do_add_list';
+
 
 app->defaults(layout => 'default');
 app->start;
@@ -428,9 +480,9 @@ tasks all require you to be logged in. Please note that admin actions will be
 logged, just in case.</p>
 
 <ul>
-<li>
-%= link_to 'Add a user' => 'add'
-</li>
+<li><%= link_to 'Add an account' => 'add' %></li>
+<li><%= link_to 'Add a list' => 'add_list' %></li>
+<li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
 
 
@@ -438,14 +490,20 @@ logged, just in case.</p>
 % title 'Add an account';
 <h1>Add an account</h1>
 
+<p>Both forms, <em>https://octodon.social/@kensanata</em> and
+<em>kensanata@gmail.com</em> are accepted.</p>
+
 %= form_for do_add => begin
 %= label_for account => 'Account'
 %= text_field 'account'
 
+<p>
+%= link_to 'Add a list' => 'add_list'
+</p>
+
 <p>Lists:
 % join("<br /\n", map {
-%= check_box $_
-%= $_
+<label><%= check_box $_ %><%= $_ %></label>
 % } (@$lists));
 </p>
 
@@ -455,15 +513,42 @@ logged, just in case.</p>
 
 @@ do_add.html.ep
 % title 'Add an account';
-<h1>Add a user</h1>
+<h1>Add an account</h1>
 
-<p>The user <%= $account %> was added to the following lists:
+<p>The account <%= $account %> was added to the following lists:
 %= join(", ", @$lists);
 </p>
 
 <p>
-%= link_to 'Add another user' => 'add'
+%= link_to 'Add another account' => 'add'
 </p>
+
+
+@@ add_list.html.ep
+% title 'Add a list';
+<h1>Add a list</h1>
+
+%= form_for do_add_list => begin
+%= label_for name => 'List'
+%= text_field 'name'
+%= submit_button
+% end
+
+
+@@ do_add_list.html.ep
+% title 'Add a list';
+<h1>Add a list</h1>
+
+<p>The list <em><%= $name %></em> was created.</p>
+
+<p>
+What next?
+%= link_to 'Add another list' => 'add_list'
+or
+%= link_to 'add an account' => 'add'
+.
+</p>
+
 
 @@ login.html.ep
 % layout 'default';
@@ -542,6 +627,7 @@ form.button input, a.button {
 .logo {float: right; max-height: 300px; }
 .alert { font-weight: bold; }
 .login label { display: inline-block; width: 12ex; }
+label { white-space:  nowrap; }
 % end
 <meta name="viewport" content="width=device-width">
 </head>
