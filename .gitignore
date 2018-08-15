@@ -1,2 +1,4 @@
 *.txt
 /credentials
+/admin.log
+/trunk.conf

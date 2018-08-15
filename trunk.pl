@@ -2,13 +2,36 @@
 use Mojolicious::Lite;
 use Mastodon::Client;
 use Mojo::File;
+use Mojo::Log;
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8);
 
 my $dir = "/home/alex/src/trunk";            # FIXME
 my $uri = "https://communitywiki.org/trunk"; # FIXME
 
+my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'info');
+
 plugin 'RenderFile';
+plugin 'Config' => {default => {users => {}}};
+
+plugin 'authentication', {
+    autoload_user => 1,
+    load_user => sub {
+        my ($self, $username) = @_;
+        return {
+	  'username' => $username,
+	} if app->config('users')->{$username};
+        return undef;
+    },
+    validate_user => sub {
+        my ($self, $username, $password) = @_;
+	if (app->config('users')->{$username}
+	    && $password eq app->config('users')->{$username}) {
+	  return $username;
+	}
+        return undef;
+    },
+};
 
 sub to_markdown {
   my $file = shift;
@@ -19,6 +42,10 @@ sub to_markdown {
 
 get '/' => sub {
   my $c = shift;
+  # if we're testing locally
+  if ($c->url_for->to_abs =~ /localhost:3000/) {
+    $uri = 'http://localhost:3000/';
+  }
   # if we're here because of the redirect uri
   my $code = $c->param('code');
   if ($code) {
@@ -31,7 +58,7 @@ get '/' => sub {
     } else {
       $c->render(template => 'error',
 		 msg => "We got back an authorization code "
-		 . "but the cookie was lostand now we don't know what to do!");
+		 . "but the cookie was lost. This looks like a bug.");
     }
     return;
   }
@@ -63,7 +90,7 @@ get '/follow/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
   # this will send us to /auth
-  $c->render(template => 'login', name => $name, action => 'follow');
+  $c->render(template => 'auth', name => $name, action => 'follow');
 } => 'follow';
 
 post '/auth' => sub {
@@ -194,10 +221,93 @@ get 'do/follow' => sub {
   $c->render(template => 'follow', name => $name, accts => \@accts);
 } => 'do_follow';
 
+
 get '/logo' => sub {
   my $c = shift;
   $c->render_file('filepath' => "$dir/trunk-logo.jpg");
 };
+
+
+get '/admin' => sub {
+  my $c = shift;
+  $c->render();
+};
+  
+
+get '/add' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+  }
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(template => 'add', lists => \@lists);
+};
+
+get '/login' => sub {
+  my $c = shift;
+  my $action = $c->param('action');
+  my $username = $c->param('username');
+  my $password = $c->param('password');
+  if ($username) {
+    $c->authenticate($username, $password);
+    if ($c->is_user_authenticated()) {
+      return $c->redirect_to($action);
+    } else {
+      $c->stash(login => 'wrong');
+    }
+  }
+  $c->render(template => 'login', action => $action);
+};
+
+sub backup {
+  my $path = shift;
+  if (! -e "$path~") {
+    $path->copy_to("$path~");
+  } else {
+    my $i = 1;
+    while (-e "$path.~$i~") {
+      $i++;
+    }
+    $path->copy_to("$path.~$i~");
+  }
+}
+
+sub add_account {
+  my $path = shift;
+  my $account = shift;
+  my %accounts = map { $_ => 1 } split(" ", $path->slurp);
+  if (not $accounts{$account}) {
+    backup($path);
+    my $fh = $path->open(">>:encoding(UTF-8)") || die "Cannot write to $path: $!";
+    print $fh "$account\n";
+    close($fh);
+  }
+}
+
+post '/do/add' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+  }
+  my $user = $c->current_user->{username};
+  my $account = $c->param('account');
+  $account =~ s/^@//;   # trim extra @ at the beginning
+  $account =~ s/^\s+//; # trim leading whitespace
+  $account =~ s/\s+$//; # trim trailing whitespace
+  my $hash = $c->req->body_params->to_hash;
+  delete $hash->{account};
+  my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
+  local $" = ", ";
+  $log->info("$user added $account to @lists");
+  for my $name (@lists) {
+    add_account(Mojo::File->new("$dir/$name.txt"), $account);
+  }
+  $c->render(template => 'do_add', account => $account, lists => \@lists);
+} => 'do_add';
 
 app->defaults(layout => 'default');
 app->start;
@@ -205,21 +315,80 @@ app->start;
 __DATA__
 
 
-@@ login.html.ep
-% title 'Mastodon';
-<h1>Login</h1>
+@@ index.html.ep
+% title 'Trunk for Mastodon';
+<%== $md %>
 
-<p>Please provide your account. You will be redirected to a login page. Once you
-are logged in, we will proceed to <%= $action %>
-<%= link_to grab => {name => $name} => begin%><%= $name %><%= end %>.</p>
+<ul>
+% for my $name (@$lists) {
+<li>
+%= link_to grab => {name => $name} => begin
+%= $name
+% end
+</li>
+% }
+</ul>
 
-<p>
+Empty lists:
+
+<ul>
+% for my $name (@$empty_lists) {
+<li>
+%= link_to grab => {name => $name} => begin
+%= $name
+% end
+</li>
+% }
+</ul>
+
+
+@@ auth.html.ep
+% title 'Login to Mastodon Instance';
+<h1>Which account to use?</h1>
+
+<p>Please provide the account you want to use. Don not provide your email
+address: I'd use kensanata@octodon.social instead of kensanata@gmail.com, for
+example. You will be redirected to your instance. There, you need to authorize
+the Trunk application to act on your behalf. If you do, Trunk will proceed to
+<%= $action %> <%= link_to grab => {name => $name} => begin%><%= $name %><%= end
+%>. If you prefer not to do that, no problem. Just go back to the list and go
+through the list manually.</p>
+
 %= form_for auth => (method => 'POST') => begin
 %= text_field 'account'
 %= hidden_field name => $name
 %= hidden_field action => $action
 %= submit_button
 % end
+
+
+@@ grab.html.ep
+% title 'Grab a List';
+<h1><%= $name %></h1>
+
+<p>Below are some people for you to follow. If you click the button below in
+order to follow them all, what will happen is that we will create a list called
+<em><%= $name %></em> for your account and we'll put any of these that you're
+not already following into this list. If you already have a list with the same
+name, don't worry: you can have lists sharing the same name.</p>
+
+%= button_to "Follow $name" => follow => {name => $name } => (class => 'button')
+
+<p>Here's the list of accounts for the <em><%= $name %></em> list. You can of
+course pick and choose instead of following them all, using Mastodon's
+<em>remote follow</em> feature.</p>
+
+<ul class="follow">
+% for my $account (@$accounts) {
+<li>
+% my ($username, $instance) = split(/@/, $account);
+<a href="https://<%= $instance %>/users/<%= $username %>/remote_follow" class="button">Follow</a>
+<a href="https://<%= $instance %>/@<%= $username %>">
+%= $account
+</a>
+</li>
+% }
+</ul>
 
 
 @@ follow.html.ep
@@ -249,59 +418,82 @@ new statuses, they will appear here."</blockquote>
 % }
 </ul>
 
-@@ grab.html.ep
-% title 'Grab a List';
-<h1><%= $name %></h1>
 
-<p>Below are some people for you to follow. If you click the button below in
-order to follow them all, what will happen is that we will create a list called
-<em><%= $name %></em> for your account and we'll put any of these that you're
-not already following into this list. If you already have a list with the same
-name, don't worry: you can have lists sharing the same name.</p>
+@@ admin.html.ep
+% title 'Trunk Admins';
+<h1>Administration</h1>
 
-%= button_to "Follow $name" => follow => {name => $name } => (class => 'button')
-
-<p>Here's the list of accounts for the <em><%= $name %></em> list. You can of
-course pick and choose instead of following them all, using Mastodon's
-<em>remote follow</em> feature.</p>
+<p>Hello and thank you for helping administrate the Trunk lists! The following
+tasks all require you to be logged in. Please note that admin actions will be
+logged, just in case.</p>
 
 <ul>
-% for my $account (@$accounts) {
 <li>
-% my ($username, $instance) = split(/@/, $account);
-<a href="https://<%= $instance %>/users/<%= $username %>/remote_follow" class="button">Follow</a>
-<a href="https://<%= $instance %>/@<%= $username %>">
-%= $account
-</a>
+%= link_to 'Add a user' => 'add'
 </li>
-% }
 </ul>
 
-@@ index.html.ep
-% title 'Trunk for Mastodon';
-<%== $md %>
 
-<ul>
-% for my $name (@$lists) {
-<li>
-%= link_to grab => {name => $name} => begin
-%= $name
+@@ add.html.ep
+% title 'Add an account';
+<h1>Add an account</h1>
+
+%= form_for do_add => begin
+%= label_for account => 'Account'
+%= text_field 'account'
+
+<p>Lists:
+% join("<br /\n", map {
+%= check_box $_
+%= $_
+% } (@$lists));
+</p>
+
+%= submit_button
 % end
-</li>
-% }
-</ul>
 
-Empty lists:
 
-<ul>
-% for my $name (@$empty_lists) {
-<li>
-%= link_to grab => {name => $name} => begin
-%= $name
+@@ do_add.html.ep
+% title 'Add an account';
+<h1>Add a user</h1>
+
+<p>The user <%= $account %> was added to the following lists:
+%= join(", ", @$lists);
+</p>
+
+
+@@ login.html.ep
+% layout 'default';
+% title 'Login';
+<h1>Login</h1>
+<% if ($c->stash('login') eq 'wrong') { %>
+<p>
+<span class="alert">Login failed. Username unknown or password wrong.</span>
+</p>
+<% } %>
+
+<p>This action (<%= $action =%>) requires you to login.</p>
+
+%= form_for login => (class => 'login') => begin
+%= hidden_field action => $action
+%= label_for username => 'Username'
+%= text_field 'username'
+<p>
+%= label_for password => 'Password'
+%= password_field 'password'
+<p>
+%= submit_button 'Login'
 % end
-</li>
-% }
-</ul>
+
+
+@@ logout.html.ep
+% layout 'default';
+% title 'Logout';
+<h1>Logout</h1>
+<p>
+You have been logged out.
+<p>
+Go back to the <%= link_to 'main menu' => 'main' %>.
 
 
 @@ error.html.ep
@@ -343,8 +535,10 @@ form.button input, a.button {
   font-weight: 500;
   border: 0;
 }
-li { display: block; margin-bottom: 20pt; }
+.follow li { display: block; margin-bottom: 20pt; }
 .logo {float: right; max-height: 300px; }
+.alert { font-weight: bold; }
+.login label { display: inline-block; width: 12ex; }
 % end
 <meta name="viewport" content="width=device-width">
 </head>
@@ -355,6 +549,7 @@ li { display: block; margin-bottom: 20pt; }
 <p>
 <a href="https://communitywiki.org/trunk">Trunk</a>&#x2003;
 <a href="https://alexschroeder.ch/cgit/trunk/about/">Source</a>&#x2003;
+<%= link_to 'Admins' => 'admin' %>&#x2003;
 <a href="https://alexschroeder.ch/wiki/Contact">Alex Schroeder</a>
 </body>
 </html>
