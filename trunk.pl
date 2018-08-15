@@ -461,6 +461,9 @@ logged, just in case.</p>
 %= join(", ", @$lists);
 </p>
 
+<p>
+%= link_to 'Add another user' => 'add'
+</p>
 
 @@ login.html.ep
 % layout 'default';
