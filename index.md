@@ -19,17 +19,18 @@ themselves. Please encourage them to contact me!
 
 When you follow an entire list, this is what happens:
 
-1. you are redirected to the login page of your instance, if you
-   aren't logged in
+1. you are redirected to your instance
 
-2. you must authorize Trunk (this application)
+2. you must login if you aren't logged in already
+
+3. you must authorize Trunk (this application)
 
 4. Trunk makes your account follow every person in the list you picked
    (unless you're following them already)
    
-3. Trunk creates a list with the same name for you
+5. Trunk creates a list with the same name for you
 
-5. any new account Trunk just followed are added to this list
+6. any new account Trunk just followed are added to this list
    (hopefully this helps you to quickly unfollow them if you made a
    mistake)
 
