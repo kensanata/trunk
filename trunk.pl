@@ -324,9 +324,9 @@ post '/do/add' => sub {
   }
   my $user = $c->current_user->{username};
   my $account = $c->param('account');
-  $account =~ s/^@//;   # trim extra @ at the beginning
   $account =~ s/^\s+//; # trim leading whitespace
   $account =~ s/\s+$//; # trim trailing whitespace
+  $account =~ s/^@//;   # trim extra @ at the beginning
   $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
   my $hash = $c->req->body_params->to_hash;
   delete $hash->{account};
