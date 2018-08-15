@@ -33,6 +33,10 @@ When you follow an entire list, this is what happens:
    (hopefully this helps you to quickly unfollow them if you made a
    mistake)
 
+If you follow all the accounts on the list, and new accounts get added
+at a later point, you won't automatically follow them. No automatic
+updates!
+
 **Privacy**: We do not store your credentials. We use cookies to save
 your account while you're being redirected. These cookies should
 expire after 60s.
