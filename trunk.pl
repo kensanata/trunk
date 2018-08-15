@@ -21,6 +21,13 @@ sub to_markdown {
   return markdown(decode_utf8($md));
 }
 
+sub error {
+  my $c = shift;
+  my $msg = shift;
+  $c->render(template => 'error', msg => $msg, status => '500');
+  return 0;
+}
+
 get '/' => sub {
   my $c = shift;
   # if we're testing locally
@@ -35,13 +42,11 @@ get '/' => sub {
     my $name = $c->cookie('name');
     if ($action) {
       my $url = $c->url_for("do_$action")->query(code => $code, account => $account, name => $name);
-      $c->redirect_to($url);
+      return $c->redirect_to($url);
     } else {
-      $c->render(template => 'error',
-		 msg => "We got back an authorization code "
-		 . "but the cookie was lost. This looks like a bug.");
+      return error($c, "We got back an authorization code "
+		   . "but the cookie was lost. This looks like a bug.");
     }
-    return;
   }
   my $md = to_markdown('index.md');
   my @lists;
@@ -93,13 +98,10 @@ get '/auth' => sub {
   $c->cookie(action => $action, {expires => time + 60});
   $c->cookie(name => $name, {expires => time + 60});
   my $client = client($c, $account);
-  if ($client) {
-    # workaround for Mastodon::Client 0.015
-    my $instance = (split('@', $account, 2))[1];
-    $c->redirect_to($client->authorization_url(instance => $instance));
-  } else {
-    $c->render(template => 'error', msg => "Login failed!");
-  }
+  return unless $client;
+  # workaround for Mastodon::Client 0.015
+  my $instance = (split('@', $account, 2))[1];
+  $c->redirect_to($client->authorization_url(instance => $instance));
 } => 'auth';
 
 sub client {
@@ -107,10 +109,8 @@ sub client {
   my $account = shift;
   my ($who, $where) = split(/@/, $account);
   if (not $where) {
-    $c->render(template => 'error',
-	       msg => "Account must look like an email address, "
-	       . 'e.g. kensanata@octodon.social');
-    return;
+    return error($c, "Account must look like an email address, "
+		 . 'e.g. kensanata@octodon.social');
   }
   my ($instance, $client_id, $client_secret);
 
@@ -154,42 +154,23 @@ sub client {
 get 'do/follow' => sub {
   my $c = shift;
 
-  my $code = $c->param('code'); # this is the authorization code!
-  if (!$code) {
-    $c->render(template => 'error',
-	       msg => "We failed to get an authorization code.");
-    return;
-  }
+  my $code = $c->param('code')
+      || return error($c, "We failed to get an authorization code.");
 
-  my $account = $c->param('account');
-  if (!$account) {
-    $c->render(template => 'error',
-	       msg => "We did not find the account in the cookie.");
-    return;
-  }
+  my $account = $c->param('account')
+      || return error($c, "We did not find the account in the cookie.");
 
-  my $name = $c->param('name');
-  if (!$name) {
-    $c->render(template => 'error',
-	       msg => "We did not find the list name in the cookie.");
-    return;
-  }
+  my $name = $c->param('name')
+      || return error($c, "We did not find the list name in the cookie.");
 
-  my $client = client($c, $account);
-
-  if (!$client) {
-    $c->render(template => 'error',
-	       msg => "Something about this login went wrong.");
-    return;
-  }
+  my $client = client($c, $account) || return;
 
   eval {
     $client->authorize(access_code => $code);
   };
+
   if ($@) {
-    $c->render(template => 'error',
-	       msg => "Authorisation failed!");
-    return;
+    return error($c, "Authorisation failed!");
   }
 
   # get the new accounts we're supposed to follow (strings)
@@ -200,25 +181,34 @@ get 'do/follow' => sub {
   $c->inactivity_timeout(180);
 
   my @ids;
+  my @changes;
   for my $acct(@accts) {
     # and follow it
     eval {
       my $account = $client->remote_follow($acct);
-      # and remember to add it to the list
       push(@ids, $account->{id});
+      push(@changes, $acct);
     };
     # ignore errors: if we're already subscribed then that's fine
   }
 
-  # create the list
-  my $list = $client->post('lists', {title => $name});
-
-  # and add the new accounts we're following to the new list
-  my $id = $list->{id};
-  $client->post("lists/$id/accounts" => {account_ids => \@ids});
+  # Create the list and add the new accounts we're following to the new list, if
+  # any. If we were already following everybody, then the list of ids is empty
+  # and we don't need to create the list.
+  if (@ids) {
+    eval {
+      my $list = $client->post('lists', {title => $name});
+      my $id = $list->{id};
+      $client->post("lists/$id/accounts" => {account_ids => \@ids});
+    }
+  }
 
   # done!
-  $c->render(template => 'follow_done', name => $name, accts => \@accts);
+  if (@changes) {
+    $c->render(template => 'follow_done', name => $name, accts => \@changes);
+  } else {
+    $c->render(template => 'no_follow_done', name => $name);
+  }
 } => 'do_follow';
 
 
@@ -358,22 +348,14 @@ post '/do/list' => sub {
   my $name = $c->param('name');
   $name =~ s/^\s+//; # trim leading whitespace
   $name =~ s/\s+$//; # trim trailing whitespace
-
-  if (not $name) {
-    $c->render(template => 'error',
-	       msg => "Please provide a list name.");
-    return;
-  }
+  return error($c, "Please provide a list name.") unless $name;
 
   my $path = Mojo::File->new("$dir/$name.txt");
-  if (-e $path) {
-    $c->render(template => 'error',
-	       msg => "This list already exists.");
-    return;
-  }
+  return error($c, "This list already exists.") if -e $path;
 
   $log->info("$user created $name");
-  my $fh = $path->open(">>:encoding(UTF-8)") || die "Cannot write to $path: $!";
+  my $fh = $path->open(">>:encoding(UTF-8)")
+      || error($c, "Cannot write to $path: $!");
   close($fh);
 
   $c->render(template => 'do_add_list', name => $name);
@@ -488,6 +470,8 @@ new statuses, they will appear here."</blockquote>
 
 <P>Enjoy! 👍</p>
 
+<p>These are the new accounts you're following, now:</p>
+
 <ul>
 % for my $account (@$accts) {
 <li>
@@ -498,6 +482,14 @@ new statuses, they will appear here."</blockquote>
 </li>
 % }
 </ul>
+
+
+@@ no_follow_done.html.ep
+% title 'Nothing to do';
+<h1>Nothing to do!</h1>
+
+<p>We didn't need to do a thing. You are already following everybody in the
+<em><%= $name %></em> list.</p> 👍
 
 
 @@ admin.html.ep
