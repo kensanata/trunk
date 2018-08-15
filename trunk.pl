@@ -84,7 +84,9 @@ post '/auth' => sub {
   $c->cookie(name => $name, {expires => time + 60});
   my $client = client($c, $account);
   if ($client) {
-    $c->redirect_to($client->authorization_url());
+    # workaround for Mastodon::Client 0.015
+    my $instance = (split('@', $account, 2))[1];
+    $c->redirect_to($client->authorization_url(instance => $instance));
   } else {
     $c->render(template => 'error', msg => "Login failed!");
   }
