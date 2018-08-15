@@ -9,7 +9,7 @@ use Encode qw(decode_utf8);
 my $dir = "/home/alex/src/trunk";            # FIXME
 my $uri = "https://communitywiki.org/trunk"; # FIXME
 
-my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'info');
+my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'debug');
 
 plugin 'RenderFile';
 plugin 'Config' => {default => {users => {}}};
@@ -70,11 +70,21 @@ get '/grab/:name' => sub {
 get '/follow/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
-  # this will send us to /auth
-  $c->render(template => 'auth', name => $name, action => 'follow');
+  $c->render(template => 'follow', name => $name);
 } => 'follow';
 
-post '/auth' => sub {
+get '/follow_confirm' => sub {
+  my $c = shift;
+  my $account = $c->param('account');
+  my $name = $c->param('name');
+  # clean up user input
+  $account =~ s/^\s+//;
+  $account =~ s/\s+$//;
+  $account =~ s/^@//;
+  $c->render(template => 'follow_confirm', name => $name, account => $account);
+} => 'follow_confirm';
+
+get '/auth' => sub {
   my $c = shift;
   my $account = $c->param('account');
   my $action = $c->param('action');
@@ -103,6 +113,8 @@ sub client {
     return;
   }
   my ($instance, $client_id, $client_secret);
+
+  # find the line in credentials matching our instance ("where")
   my $file = "$dir/credentials";
   if (open(my $fh, "<", $file)) {
     while (my $line = <$fh>) {
@@ -111,13 +123,15 @@ sub client {
       last if $instance eq $where;
     }
   }
+
+  # set up client attributes
   my %attributes = (
     instance	    => $where,
     redirect_uri    => $uri,
     scopes          => ['follow', 'read', 'write'],
     name	    => 'Trunk',
-    website	    => $uri,
- );
+    website	    => $uri, );
+
   my $client;
   if ($instance and $instance eq $where) {
     $attributes{client_id}     = $client_id;
@@ -127,7 +141,7 @@ sub client {
     $client = Mastodon::Client->new(%attributes);
     $client->register();
     open(my $fh, ">>", $file) || die "Cannot write $file: $!";
-    my $instance = $client->instance->uri;
+    $instance = $client->instance->uri;
     $instance =~ s!^https://!!;
     print $fh join(" ", $instance,
 		   $client->client_id,
@@ -201,7 +215,7 @@ get 'do/follow' => sub {
   $client->post("lists/$id/accounts" => {account_ids => \@ids});
 
   # done!
-  $c->render(template => 'follow', name => $name, accts => \@accts);
+  $c->render(template => 'follow_done', name => $name, accts => \@accts);
 } => 'do_follow';
 
 
@@ -396,24 +410,34 @@ Empty lists:
 </ul>
 
 
-@@ auth.html.ep
+@@ follow.html.ep
 % title 'Login to Mastodon Instance';
 <h1>Which account to use?</h1>
 
-<p>Please provide the account you want to use. Don not provide your email
-address: I'd use kensanata@octodon.social instead of kensanata@gmail.com, for
-example. You will be redirected to your instance. There, you need to authorize
-the Trunk application to act on your behalf. If you do, Trunk will proceed to
-<%= $action %> <%= link_to grab => {name => $name} => begin%><%= $name %><%= end
-%>. If you prefer not to do that, no problem. Just go back to the list and go
-through the list manually.</p>
+<p>Please provide the account you want to use. Do not provide your email
+address: I'd use <em>kensanata@octodon.social</em> instead of
+<em>kensanata@gmail.com</em>, for example. You will be redirected to your
+instance. There, you need to authorize the Trunk application to act on your
+behalf. If you do, Trunk will proceed to follow <%= link_to grab => {name =>
+$name} => begin%><%= $name %><%= end %>. If you prefer not to do that, no
+problem. Just go back to the list and go through the list manually.</p>
 
-%= form_for auth => (method => 'POST') => begin
+%= form_for follow_confirm => begin
 %= text_field 'account'
 %= hidden_field name => $name
-%= hidden_field action => $action
 %= submit_button
 % end
+
+
+@@ follow_confirm.html.ep
+% title 'Confirmation';
+<h1>Please confirm</h1>
+
+<p>We're going to use <em><%= $account %></em> to follow all the accounts in <%=
+link_to grab => {name => $name} => begin%><%= $name %><%= end %>.</p>
+
+<p><%= link_to url_for('auth')->query(account => $account, action => 'follow',
+name => $name) => (class => 'button') => begin %>Let's do this<% end %></p>
 
 
 @@ grab.html.ep
@@ -445,7 +469,7 @@ course pick and choose instead of following them all, using Mastodon's
 </ul>
 
 
-@@ follow.html.ep
+@@ follow_done.html.ep
 % title 'Follow a List';
 <h1><%= $name %></h1>
 
