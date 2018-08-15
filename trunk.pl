@@ -196,6 +196,9 @@ get 'do/follow' => sub {
   my $path = Mojo::File->new("$dir/$name.txt");
   my @accts = split(" ", $path->slurp);
 
+  # increase timeout (default is 15s)
+  $c->inactivity_timeout(180);
+
   my @ids;
   for my $acct(@accts) {
     # and follow it
