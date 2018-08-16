@@ -499,7 +499,7 @@ course pick and choose instead of following them all, using Mastodon's
 <li>
 % my ($username, $instance) = split(/@/, $account);
 <a href="https://<%= $instance %>/users/<%= $username %>/remote_follow" class="button">Follow</a>
-<a href="https://<%= $instance %>/@<%= $username %>">
+<a href="https://<%= $instance %>/users/<%= $username %>">
 %= $account
 </a>
 </li>
