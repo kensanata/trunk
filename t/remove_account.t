@@ -63,8 +63,8 @@ unlink($path2) if -e $path2;
 
 $t->post_ok('/do/remove' => form => { account => 'one' })
     ->status_is(200)
-    ->text_is('h1' => 'Remove an account')
-    ->content_like(qr'The account one was removed from the following lists:');
+    ->text_is('h1' => 'Account not found')
+    ->content_like(qr'The account one was not found on any list');
 
 ok(! -e $path2, "missing list was not created");
 

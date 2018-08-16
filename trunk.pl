@@ -379,7 +379,11 @@ post '/do/remove' => sub {
     my $name = $path->basename('.txt');
     push(@lists, $name) if remove_account($path, $account);
   }
-  $c->render(template => 'do_remove', account => $account, lists => \@lists);
+  if (@lists) {
+    $c->render(template => 'do_remove', account => $account, lists => \@lists);
+  } else {
+    $c->render(template => 'do_remove_failed', account => $account);
+  }
 } => 'do_remove';
 
 
@@ -556,6 +560,7 @@ logged, just in case.</p>
 <ul>
 <li><%= link_to 'Add an account' => 'add' %></li>
 <li><%= link_to 'Add a list' => 'add_list' %></li>
+<li><%= link_to 'Remove an account' => 'remove' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
 
@@ -624,6 +629,17 @@ logged, just in case.</p>
 
 <p>
 %= link_to 'Remove another account' => 'remove'
+</p>
+
+
+@@ do_remove_failed.html.ep
+% title 'Remove an account';
+<h1>Account not found</h1>
+
+<p>The account <%= $account %> was not found on any list.</p>
+
+<p>
+%= link_to 'Remove a different account' => 'remove'
 </p>
 
 
