@@ -629,6 +629,8 @@ logged, just in case.</p>
 
 <p>
 %= link_to 'Remove another account' => 'remove'
+or
+<%= link_to url_for('add')->query(account => $account, map { $_ => 'on' } @$lists) => begin %>add some it back again<% end %>
 </p>
 
 
