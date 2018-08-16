@@ -165,12 +165,14 @@ get 'do/follow' => sub {
 
   my $client = client($c, $account) || return;
 
+  # We don't save the access_token returned by this call!
   eval {
     $client->authorize(access_code => $code);
   };
 
   if ($@) {
-    return error($c, "Authorisation failed!");
+    return error($c, "Authorisation failed. Did you try to reload the page? "
+		 . "This will not work since we're not saving the access token.");
   }
 
   # get the new accounts we're supposed to follow (strings)
