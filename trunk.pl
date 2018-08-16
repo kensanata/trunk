@@ -334,10 +334,59 @@ post '/do/add' => sub {
 } => 'do_add';
 
 
+get '/remove' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'remove'));
+  }
+  $c->render(template => 'remove');
+};
+
+
+sub remove_account {
+  my $path = shift;
+  my $account = shift;
+  my @accounts = split(" ", $path->slurp);
+  for (my $i = 0; $i <= $#accounts; $i++) {
+    if ($accounts[$i] eq $account) {
+      backup($path);
+      splice(@accounts, $i, 1);
+      my $fh = $path->open(">:encoding(UTF-8)") || die "Cannot write to $path: $!";
+      print $fh join("\n", @accounts, ""); # empty string ensures final newline
+      close($fh);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+post '/do/remove' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'remove'));
+  }
+  my $user = $c->current_user->{username};
+  my $account = $c->param('account');
+  $account =~ s/^\s+//; # trim leading whitespace
+  $account =~ s/\s+$//; # trim trailing whitespace
+  $account =~ s/^@//;   # trim extra @ at the beginning
+  $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
+  $log->info("$user removed $account");
+  my @lists;
+  for my $file (<$dir/*.txt>) {
+    next unless -s $file;
+    my $path = Mojo::File->new($file);
+    my $name = $path->basename('.txt');
+    push(@lists, $name) if remove_account($path, $account);
+  }
+  $c->render(template => 'do_remove', account => $account, lists => \@lists);
+} => 'do_remove';
+
+
 get '/add_list' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
-    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+    return $c->redirect_to($c->url_for('login')->query(action => 'add_list'));
   }
   $c->render(template => 'add_list');
 };
@@ -546,6 +595,35 @@ logged, just in case.</p>
 
 <p>
 %= link_to 'Add another account' => 'add'
+</p>
+
+
+@@ remove.html.ep
+% title 'Remove an account';
+<h1>Remove an account</h1>
+
+<p>This will remove an account from all the lists.</p>
+
+<p>Both forms, <em>https://octodon.social/@kensanata</em> and
+<em>kensanata@gmail.com</em> are accepted.</p>
+
+%= form_for do_remove => begin
+%= label_for account => 'Account'
+%= text_field 'account'
+%= submit_button
+% end
+
+
+@@ do_remove.html.ep
+% title 'Remove an account';
+<h1>Remove an account</h1>
+
+<p>The account <%= $account %> was removed from the following lists:
+%= join(", ", @$lists);
+</p>
+
+<p>
+%= link_to 'Remove another account' => 'remove'
 </p>
 
 
