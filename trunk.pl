@@ -301,6 +301,7 @@ sub backup {
 sub add_account {
   my $path = shift;
   my $account = shift;
+  return unless -e $path;
   my %accounts = map { $_ => 1 } split(" ", $path->slurp);
   if (not $accounts{$account}) {
     backup($path);
