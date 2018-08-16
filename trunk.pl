@@ -251,6 +251,7 @@ get '/login' => sub {
   my $action = $c->param('action');
   my $username = $c->param('username');
   my $password = $c->param('password');
+  $c->stash(login => '');
   if ($username) {
     $c->authenticate($username, $password);
     if ($c->is_user_authenticated()) {
