@@ -387,12 +387,12 @@ post '/do/remove' => sub {
 } => 'do_remove';
 
 
-get '/add_list' => sub {
+get '/create' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
-    return $c->redirect_to($c->url_for('login')->query(action => 'add_list'));
+    return $c->redirect_to($c->url_for('login')->query(action => 'create'));
   }
-  $c->render(template => 'add_list');
+  $c->render(template => 'create');
 };
 
 
@@ -415,8 +415,8 @@ post '/do/list' => sub {
       || error($c, "Cannot write to $path: $!");
   close($fh);
 
-  $c->render(template => 'do_add_list', name => $name);
-} => 'do_add_list';
+  $c->render(template => 'do_create', name => $name);
+} => 'do_create';
 
 
 get '/rename' => sub {
@@ -603,7 +603,7 @@ logged, just in case.</p>
 <ul>
 <li><%= link_to 'Add an account' => 'add' %></li>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
-<li><%= link_to 'Add a list' => 'add_list' %></li>
+<li><%= link_to 'Add a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
@@ -621,7 +621,7 @@ logged, just in case.</p>
 %= text_field 'account'
 
 <p>
-%= link_to 'Add a list' => 'add_list'
+%= link_to 'Add a list' => 'create'
 </p>
 
 <p>Lists:
@@ -689,25 +689,25 @@ or
 </p>
 
 
-@@ add_list.html.ep
+@@ create.html.ep
 % title 'Add a list';
 <h1>Add a list</h1>
 
-%= form_for do_add_list => begin
+%= form_for do_create => begin
 %= label_for name => 'List'
 %= text_field 'name'
 %= submit_button
 % end
 
 
-@@ do_add_list.html.ep
+@@ do_create.html.ep
 % title 'Add a list';
 <h1>Add a list</h1>
 
 <p>The list <em><%= $name %></em> was created.</p>
 
 <p>
-%= link_to 'Add another list' => 'add_list'
+%= link_to 'Add another list' => 'create'
 or
 %= link_to 'add an account' => 'add'
 </p>
@@ -718,7 +718,7 @@ or
 <h1>Rename a list</h1>
 
 <p>
-%= link_to 'Add a list' => 'add_list'
+%= link_to 'Add a list' => 'create'
 instead
 </p>
 

@@ -22,25 +22,25 @@ require './trunk.pl';
 
 my $t = Test::Mojo->new;
 
-$t->get_ok('/add_list')
+$t->get_ok('/create')
     ->status_is(302)
     ->header_is('/login');
 
 $t->ua->max_redirects(1);
-$t->get_ok('/add_list')
+$t->get_ok('/create')
     ->status_is(200)
     ->text_is('h1' => 'Login')
     ->element_exists('form[action=/login]')
     ->element_exists('label[for=username]')
     ->element_exists('input[name=username][type=text]')
-    ->element_exists('input[name=action][type=hidden][value=add_list]');
+    ->element_exists('input[name=action][type=hidden][value=create]');
 
 $t->app->config({users=>{alex=>'let me in'}});
 
 $t->get_ok('/login' => form => {
   username => 'alex',
   password => 'let me in',
-  action => 'add_list'})
+  action => 'create'})
     ->status_is(200)
     ->text_is('h1' => 'Add a list')
     ->element_exists('form[action=/do/list]')
