@@ -42,7 +42,7 @@ $t->get_ok('/login' => form => {
   password => 'let me in',
   action => 'create'})
     ->status_is(200)
-    ->text_is('h1' => 'Add a list')
+    ->text_is('h1' => 'Create a list')
     ->element_exists('form[action=/do/list]')
     ->element_exists('label[for=name]')
     ->element_exists('input[name=name][type=text]');
@@ -52,7 +52,7 @@ unlink($path) if -e $path;
 
 $t->post_ok('/do/list' => form => { name => 'Test' })
     ->status_is(200)
-    ->text_is('h1' => 'Add a list')
+    ->text_is('h1' => 'Create a list')
     ->content_like(qr'The list <em>Test</em> was created.');
 
 ok(-e $path, 'Test.txt exists');

@@ -603,7 +603,7 @@ logged, just in case.</p>
 <ul>
 <li><%= link_to 'Add an account' => 'add' %></li>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
-<li><%= link_to 'Add a list' => 'create' %></li>
+<li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
@@ -621,7 +621,7 @@ logged, just in case.</p>
 %= text_field 'account'
 
 <p>
-%= link_to 'Add a list' => 'create'
+%= link_to 'Create a list' => 'create'
 </p>
 
 <p>Lists:
@@ -690,8 +690,8 @@ or
 
 
 @@ create.html.ep
-% title 'Add a list';
-<h1>Add a list</h1>
+% title 'Create a list';
+<h1>Create a list</h1>
 
 %= form_for do_create => begin
 %= label_for name => 'List'
@@ -701,8 +701,8 @@ or
 
 
 @@ do_create.html.ep
-% title 'Add a list';
-<h1>Add a list</h1>
+% title 'Create a list';
+<h1>Create a list</h1>
 
 <p>The list <em><%= $name %></em> was created.</p>
 
@@ -718,7 +718,7 @@ or
 <h1>Rename a list</h1>
 
 <p>
-%= link_to 'Add a list' => 'create'
+%= link_to 'Create a list' => 'create'
 instead
 </p>
 
@@ -737,7 +737,7 @@ instead
 
 
 @@ do_rename.html.ep
-% title 'Add a list';
+% title 'Create a list';
 <h1>Rename a list</h1>
 
 <p>The list <em><%= $old_name %></em> was renamed to <em><%= $new_name %></em>.</p>
