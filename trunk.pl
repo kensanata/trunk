@@ -270,6 +270,32 @@ get "/logout" => sub {
 } => 'logout';
 
 
+
+
+get '/log' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'log'));
+  }
+  # we can't use $log->history because that might be empty after a restart
+  my $path = Mojo::File->new($log->path);
+  my @lines = split(/\n/,$path->slurp);
+  my $n = @lines < 30 ? @lines : 30;
+  $c->render(log => join("\n", @lines[-$n .. -1]));
+};
+
+
+get '/log/all' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'log'));
+  }
+  # we can't use $log->history because that might be empty after a restart
+  my $path = Mojo::File->new($log->path);
+  $c->render(text => $path->slurp, format => 'txt');
+} => 'log_all';
+
+
 get '/add' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -604,8 +630,26 @@ logged, just in case.</p>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
 <li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
+<li><%= link_to 'Check the log' => 'log' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
+
+
+@@ log.html.ep
+% title 'Log';
+<h1>Log</h1>
+
+<p>
+<%= link_to 'View entire log file' => 'log_all' %>.
+</p>
+
+<p>
+This is currently the end of the log file:
+</p>
+
+<pre>
+%= $log
+</pre>
 
 
 @@ add.html.ep
