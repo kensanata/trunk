@@ -11,7 +11,6 @@ my $uri = "https://communitywiki.org/trunk"; # FIXME
 
 my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'debug');
 
-plugin 'RenderFile';
 plugin 'Config' => {default => {users => {}}};
 
 sub to_markdown {
@@ -216,7 +215,7 @@ get 'do/follow' => sub {
 
 get '/logo' => sub {
   my $c = shift;
-  $c->render_file('filepath' => "$dir/trunk-logo.png");
+  $c->reply->file("$dir/trunk-logo.png");
 };
 
 

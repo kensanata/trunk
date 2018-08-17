@@ -18,8 +18,8 @@ If you want to install it, you need a reasonable Perl installation. Use `cpanm` 
 - `Mojolicious`
 - `Mojolicious::Plugin::Config`
 - `Mojolicious::Plugin::Authentication`
-- `Text::Markdown`
 - `Mastodon::Client`
+- `Text::Markdown`
 
 ## Configuration
 
