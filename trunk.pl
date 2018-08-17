@@ -403,9 +403,9 @@ post '/do/list' => sub {
   }
   my $user = $c->current_user->{username};
   my $name = $c->param('name');
+  return error($c, "Please provide a list name.") unless $name;
   $name =~ s/^\s+//; # trim leading whitespace
   $name =~ s/\s+$//; # trim trailing whitespace
-  return error($c, "Please provide a list name.") unless $name;
 
   my $path = Mojo::File->new("$dir/$name.txt");
   return error($c, "This list already exists.") if -e $path;
@@ -417,6 +417,49 @@ post '/do/list' => sub {
 
   $c->render(template => 'do_add_list', name => $name);
 } => 'do_add_list';
+
+
+get '/rename' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'rename'));
+  }
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(template => 'rename', lists => \@lists);
+};
+
+
+post '/do/rename' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'rename'));
+  }
+
+  my $user = $c->current_user->{username};
+
+  my $old_name = $c->param('old_name');
+  return error($c, "Please pick a list to rename.") unless $old_name;
+
+  my $old_path = Mojo::File->new("$dir/$old_name.txt");
+  return error($c, "This list does not exists.") if not -e $old_path;
+
+  my $new_name = $c->param('new_name');
+  return error($c, "Please provide a new list name.") unless $new_name;
+  $new_name =~ s/^\s+//; # trim leading whitespace
+  $new_name =~ s/\s+$//; # trim trailing whitespace
+
+  my $new_path = Mojo::File->new("$dir/$new_name.txt");
+  return error($c, "This list already exists.") if -e $new_path;
+
+  $log->info("$user renamed $old_name to $new_name");
+  $new_path = $old_path->move_to($new_path);
+
+  $c->render(template => 'do_rename', old_name => $old_name, new_name => $new_name);
+} => 'do_rename';
 
 
 app->defaults(layout => 'default');
@@ -559,8 +602,9 @@ logged, just in case.</p>
 
 <ul>
 <li><%= link_to 'Add an account' => 'add' %></li>
-<li><%= link_to 'Add a list' => 'add_list' %></li>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
+<li><%= link_to 'Add a list' => 'add_list' %></li>
+<li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
 
@@ -663,11 +707,43 @@ or
 <p>The list <em><%= $name %></em> was created.</p>
 
 <p>
-What next?
 %= link_to 'Add another list' => 'add_list'
 or
 %= link_to 'add an account' => 'add'
-.
+</p>
+
+
+@@ rename.html.ep
+% title 'Rename a list';
+<h1>Rename a list</h1>
+
+<p>
+%= link_to 'Add a list' => 'add_list'
+instead
+</p>
+
+%= form_for do_rename => begin
+%= label_for new_name => 'New Name'
+%= text_field 'new_name'
+
+<p>List to rename:
+% for my $name (@$lists) {
+<label><%= radio_button old_name => $name %><%= $name %></label>
+% }
+</p>
+
+%= submit_button
+% end
+
+
+@@ do_rename.html.ep
+% title 'Add a list';
+<h1>Rename a list</h1>
+
+<p>The list <em><%= $old_name %></em> was renamed to <em><%= $new_name %></em>.</p>
+
+<p>
+%= link_to 'Add an account' => 'add'
 </p>
 
 
