@@ -743,7 +743,9 @@ instead
 <p>The list <em><%= $old_name %></em> was renamed to <em><%= $new_name %></em>.</p>
 
 <p>
-%= link_to 'Add an account' => 'add'
+<%= link_to url_for('rename')->query(old_name => $new_name) => begin %>Rename it again<% end %>
+or
+%= link_to 'add an account' => 'add'
 </p>
 
 
