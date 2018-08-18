@@ -364,7 +364,8 @@ get '/remove' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'remove'));
   }
-  $c->render(template => 'remove');
+  my $account = $c->param('account');
+  $c->render(template => 'remove', account => $account);
 };
 
 
@@ -385,7 +386,7 @@ sub remove_account {
   return 0;
 }
 
-post '/do/remove' => sub {
+any '/do/remove' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'remove'));
@@ -412,6 +413,41 @@ post '/do/remove' => sub {
 } => 'do_remove';
 
 
+get '/search' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'search'));
+  }
+  $c->render(template => 'search');
+};
+
+
+post '/do/search' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'search'));
+  }
+  my $account = $c->param('account');
+  return error($c, "Please provide an account.") unless $account;
+  $account =~ s/^\s+//; # trim leading whitespace
+  $account =~ s/\s+$//; # trim trailing whitespace
+  my %accounts;
+  for my $file (<$dir/*.txt>) {
+    next unless -s $file;
+    my $path = Mojo::File->new($file);
+    my $name = $path->basename('.txt');
+    for my $account (grep(/$account/i, split(" ", $path->slurp))) {
+      push(@{$accounts{$account}}, $name);
+    }
+  }
+  if (keys %accounts) {
+    $c->render(template => 'do_search', accounts => \%accounts);
+  } else {
+    $c->render(template => 'do_search_failed', account => $account);
+  }
+} => 'do_search';
+
+
 get '/create' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -424,7 +460,7 @@ get '/create' => sub {
 post '/do/list' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
-    return $c->redirect_to($c->url_for('login')->query(action => 'add'));
+    return $c->redirect_to($c->url_for('login')->query(action => 'create'));
   }
   my $user = $c->current_user->{username};
   my $name = $c->param('name');
@@ -626,6 +662,7 @@ tasks all require you to be logged in. Please note that admin actions will be
 logged, just in case.</p>
 
 <ul>
+<li><%= link_to 'Search an account' => 'search' %></li>
 <li><%= link_to 'Add an account' => 'add' %></li>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
 <li><%= link_to 'Create a list' => 'create' %></li>
@@ -717,7 +754,7 @@ This is currently the end of the log file:
 <p>
 %= link_to 'Remove another account' => 'remove'
 or
-<%= link_to url_for('add')->query(account => $account, map { $_ => 'on' } @$lists) => begin %>add some it back again<% end %>
+<%= link_to url_for('add')->query(account => $account, map { $_ => 'on' } @$lists) => begin %>add some of it back again<% end %>
 </p>
 
 
@@ -729,6 +766,57 @@ or
 
 <p>
 %= link_to 'Remove a different account' => 'remove'
+</p>
+
+
+@@ search.html.ep
+% title 'Search for an account';
+<h1>Search for an account</h1>
+
+<p>This is where you search for accounts to see if they are already in any of
+the lists.</p>
+
+%= form_for do_search => begin
+%= label_for account => 'Account'
+%= text_field 'account'
+%= submit_button
+% end
+
+
+@@ do_search.html.ep
+% title 'Search for an account';
+<h1>Search for an account</h1>
+
+<p>Clicking on the account links on this page will allow you to "edit" an
+account: first you remove them from all their lists and then you add some of it
+back again, using a different account if they changed their instance or by
+changing the lists they belong to.</p>
+
+<ul>
+% for my $account (keys %$accounts) {
+<li>
+<%= link_to url_for('remove')->query(account => $account) => begin %><%= $account %><% end %>
+currently belongs to <%= join(", ", @{$accounts->{$account}}) %>
+</li>
+% }
+</ul>
+
+
+<p>
+%= link_to 'Search another account' => 'search'
+or
+%= link_to 'add an account' => 'add'
+</p>
+
+
+@@ do_search_failed.html.ep
+% title 'Search an account';
+<h1>Account not found</h1>
+
+<p>The account <%= $account %> was not found on any list.</p>
+
+<p>
+%= link_to 'Search a different account' => 'search'
 </p>
 
 
