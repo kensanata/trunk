@@ -1,8 +1,9 @@
-# Trunk for Mastodon
+# Trunk
 
 Trunk allows you to mass-follow a bunch of people in order to get
-started with [Mastodon](https://joinmastodon.org/). Mastodon is a
-free, open-source, decentralized microblogging network.
+started with [Mastodon](https://joinmastodon.org/) or any other
+platform on the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
+Mastodon is a free, open-source, decentralized microblogging network.
 
 If you click on one of the lists below, you'll see a page full of
 accounts. Click to see their timelines and follow them individually,

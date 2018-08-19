@@ -547,7 +547,7 @@ __DATA__
 
 
 @@ index.html.ep
-% title 'Trunk for Mastodon';
+% title 'Trunk for the Fediverse';
 <%== $md %>
 
 <ul>
