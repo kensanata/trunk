@@ -613,7 +613,10 @@ order to follow them all, what will happen is that we will create a list called
 not already following into this list. If you already have a list with the same
 name, don't worry: you can have lists sharing the same name.</p>
 
-%= button_to "Follow $name" => follow => {name => $name } => (class => 'button')
+%= form_for 'follow' => begin
+%= hidden_field name => $name
+%= submit_button "Follow $name", class => 'button'
+% end
 
 <p>Here's the list of accounts for the <em><%= $name %></em> list. You can of
 course pick and choose instead of following them all, using Mastodon's
@@ -969,18 +972,18 @@ body {
   max-width: 72ex;
   font-size: 18pt;
   font-family: "DejaVu Serif", serif;
+  hyphens: auto;
 }
 .button {
   display: inline;
 }
-form.button input, a.button {
+.button {
   font-family: "DejaVu Sans", sans;
   font-size: 14pt;
   background: #2b90d9;
   color: #fff;
   padding: 10px;
-  margin-bottom: 10px;
-  margin-right: 10px;
+  margin: 10px;
   border-radius: 4px;
   text-transform: uppercase;
   text-decoration: none;
@@ -989,15 +992,22 @@ form.button input, a.button {
   font-weight: 500;
   border: 0;
 }
-.follow li { display: block; margin-bottom: 20pt; }
-.logo {float: right; max-height: 300px; }
+ul.follow { padding: 5px 0 }
+.follow li { display: block; margin-bottom: 20pt;}
+.logo {float: right; max-height: 300px; max-width:20%; }
 .alert { font-weight: bold; }
 .login label { display: inline-block; width: 12ex; }
 label { white-space:  nowrap; }
+@media only screen and (max-device-width: 600px) {
+  body { padding: 0; }
+  h1, p { padding: 0; margin: 5px 0; }
+  ul, ol { margin: 0; }
+  .follow li { white-space: nowrap; }
+}
 % end
 <meta name="viewport" content="width=device-width">
 </head>
-<body>
+<body lang="en">
 %= image 'logo', alt => '', class => 'logo'
 <%= content %>
 <hr>
