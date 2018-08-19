@@ -613,10 +613,9 @@ order to follow them all, what will happen is that we will create a list called
 not already following into this list. If you already have a list with the same
 name, don't worry: you can have lists sharing the same name.</p>
 
-%= form_for 'follow' => begin
-%= hidden_field name => $name
-%= submit_button "Follow $name", class => 'button'
-% end
+<p class="needspace">
+<%= link_to url_for('follow')->query(name => $name) => (class => 'button') => begin %>Follow <%= $name %><% end %>
+</p>
 
 <p>Here's the list of accounts for the <em><%= $name %></em> list. You can of
 course pick and choose instead of following them all, using Mastodon's
@@ -974,8 +973,8 @@ body {
   font-family: "DejaVu Serif", serif;
   hyphens: auto;
 }
-.button {
-  display: inline;
+p.needspace {
+  margin: 20px 0;
 }
 .button {
   font-family: "DejaVu Sans", sans;
