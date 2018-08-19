@@ -168,7 +168,6 @@ get 'do/follow' => sub {
   eval {
     $client->authorize(access_code => $code);
   };
-
   if ($@) {
     return error($c, "Authorisation failed. Did you try to reload the page? "
 		 . "This will not work since we're not saving the access token.");
@@ -181,34 +180,52 @@ get 'do/follow' => sub {
   # increase timeout (default is 15s)
   $c->inactivity_timeout(180);
 
-  my @ids;
   my @changes;
+  my @errors;
+
   for my $acct(@accts) {
-    # and follow it
     eval {
       my $account = $client->remote_follow($acct);
-      push(@ids, $account->{id});
-      push(@changes, $acct);
+      push(@changes, $account);
     };
-    # ignore errors: if we're already subscribed then that's fine
+    if ($@) {
+      push(@errors, "Could not follow $acct");
+      next;
+    }
   }
 
-  # Create the list and add the new accounts we're following to the new list, if
-  # any. If we were already following everybody, then the list of ids is empty
-  # and we don't need to create the list.
-  if (@ids) {
-    eval {
-      my $list = $client->post('lists', {title => $name});
+  if (@changes) {
+
+    # Create the list and add the new accounts we're following to the new list, if
+    my $list = $client->post('lists', {title => $name});
+
+    if ($@) {
+      push(@errors, "List creation of $name failed");
+    } else {
+
       my $id = $list->{id};
-      $client->post("lists/$id/accounts" => {account_ids => \@ids});
+
+      for my $account (@changes) {
+	# we used to add all in one swoop but often we got errors and didn't know
+	# why so now we're adding each separately
+	eval {
+	  $client->post("lists/$id/accounts" => {account_ids => [$account->{id}]});
+	};
+	if ($@) {
+	  push(@errors, "Could not add $account->{acct} to $name");
+	}
+      }
     }
   }
 
   # done!
   if (@changes) {
-    $c->render(template => 'follow_done', name => $name, accts => \@changes);
+    $c->render(template => 'follow_done', name => $name,
+	       accts => [ map { $_->{acct} } @changes],
+	       errors => \@errors);
   } else {
-    $c->render(template => 'no_follow_done', name => $name);
+    $c->render(template => 'no_follow_done', name => $name,
+	       errors => \@errors);
   }
 } => 'do_follow';
 
@@ -620,8 +637,8 @@ course pick and choose instead of following them all, using Mastodon's
 <h1><%= $name %></h1>
 
 <p>We created the <em><%= $name %></em> list for you. Note that if you visit
-this list in the Mastodon web client, it will will appear empty. In fact, this
-is what it will say:</p>
+this list in the Mastodon web client, it will appear empty. In fact, this is
+what it will say:</p>
 
 <blockquote>"There is nothing in this list yet. When members of this list post
 new statuses, they will appear here."</blockquote>
@@ -644,13 +661,32 @@ new statuses, they will appear here."</blockquote>
 % }
 </ul>
 
+% if (@$errors) {
+<p>Sadly, there were also some errors:</p>
+
+<ul>
+%   for my $error (@$errors) {
+<li><%= $error %></li>
+%   }
+</ul>
+% }
+
 
 @@ no_follow_done.html.ep
 % title 'Nothing to do';
 <h1>Nothing to do!</h1>
 
-<p>We didn't need to do a thing. You are already following everybody in the
-<em><%= $name %></em> list.</p> 👍
+<p>We made no changes.</p>
+
+% if ($errors) {
+<p>These were the errors reported to us:</p>
+
+<ul>
+%   for my $error (@$errors) {
+<li><%= $error %></li>
+%   }
+</ul>
+% }
 
 
 @@ admin.html.ep
