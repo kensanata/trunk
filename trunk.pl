@@ -18,6 +18,7 @@
 use Mojolicious::Lite;
 use Mastodon::Client;
 use MCE::Loop chunk_size => 1;
+use Mojo::Util qw(url_escape);
 use Mojo::Log;
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8);
@@ -245,6 +246,45 @@ get '/admin' => sub {
 };
 
 
+sub administrators {
+  my $file = 'index.md';
+  my $path = Mojo::File->new("$dir/$file");
+  my $text = $path->slurp || die "Cannot open $dir/$file: $!";
+  my @admins;
+  while ($text =~ /^- \[(@\S+)\]/mg) {
+    push(@admins, $1);
+  }
+  return \@admins;
+}
+
+get '/request' => sub {
+  my $c = shift;
+  $c->render();
+  my $md = to_markdown('request.md');
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(template => 'request_add',
+	     md => $md,
+	     lists => \@lists);
+};
+
+get 'do/request' => sub {
+  my $c = shift;
+  my $hash = $c->req->query_params->to_hash;
+  $log->debug(join(" ", keys %$hash));
+  my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
+  local $" = ", ";
+  my $admins = administrators();
+  my $lucky = $admins->[int(rand(@$admins))];
+  my $text = url_escape("$lucky Please add me to @lists. #Trunk");
+  my $url = "web+mastodon://share?text=$text";
+  $c->render(template => 'request_done',
+	     url => $url);
+} => 'do_request';
+
 plugin 'authentication', {
     autoload_user => 1,
     load_user => sub {
@@ -288,8 +328,6 @@ get "/logout" => sub {
   $self->logout();
   $self->redirect_to('main');
 } => 'logout';
-
-
 
 
 get '/log' => sub {
@@ -662,6 +700,33 @@ new statuses, they will appear here."</blockquote>
 </ul>
 
 
+@@ request_add.html.ep
+% title 'Request List Membership';
+<%== $md %>
+
+%= form_for do_request => begin
+
+<p>
+% join("\n", map {
+<label><%= check_box $_ %><%= $_ %></label>
+% } (@$lists));
+</p>
+
+%= submit_button 'Add Me', class => 'button'
+% end
+
+
+@@ request_done.html.ep
+% title 'Request List Membership';
+<h1>Please confirm</h1>
+
+<p>OK, ready? If you click the link below, you should get sent to your instance.
+(Remember where it asked you whether you wanted to register the instance as an
+"application"? This is where the information gets used. 🙂)</p>
+
+<p><%= link_to $url => (class => 'button') => begin %>Add Me<% end %></p>
+
+
 @@ admin.html.ep
 % title 'Trunk Admins';
 <h1>Administration</h1>
@@ -714,7 +779,7 @@ This is currently the end of the log file:
 </p>
 
 <p>Lists:
-% join("<br /\n", map {
+% join("\n", map {
 <label><%= check_box $_ %><%= $_ %></label>
 % } (@$lists));
 </p>
