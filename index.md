@@ -14,7 +14,10 @@ these topics or to be posting exclusively about these topics. 🙂
 
 If you want to be added to a list, or removed from a list, or if you'd
 like to see a new list, or if you have any other questions and
-concerns, contact one of the administrators via Mastodon:
+concerns, contact one of the administrators via Mastodon.
+
+As *Trunk* and the number of requests is growing, we kindly
+ask you to mention just *one* of us. Thank you! 😅
 
 - [@aminb@pleroma.site](https://pleroma.site/users/aminb)
 - [@Thepunkgeek@chaos.social](https://chaos.social/@Thepunkgeek)
