@@ -370,15 +370,11 @@ get '/add' => sub {
 
 sub backup {
   my $path = shift;
-  if (! -e "$path~") {
-    $path->copy_to("$path~");
-  } else {
-    my $i = 1;
-    while (-e "$path.~$i~") {
-      $i++;
-    }
-    $path->copy_to("$path.~$i~");
+  my $i = 1;
+  while (-e "$path.~$i~") {
+    $i++;
   }
+  $path->copy_to("$path.~$i~");
 }
 
 sub add_account {
