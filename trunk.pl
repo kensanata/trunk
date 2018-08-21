@@ -233,6 +233,12 @@ get '/logo' => sub {
 };
 
 
+get '/index.md' => sub {
+  my $c = shift;
+  $c->reply->file("$dir/index.md");
+};
+
+
 get '/admin' => sub {
   my $c = shift;
   $c->render();
