@@ -21,7 +21,7 @@ use MCE::Loop chunk_size => 1;
 use Mojo::Util qw(url_escape);
 use Mojo::Log;
 use Text::Markdown 'markdown';
-use Encode qw(decode_utf8);
+use Encode qw(decode_utf8 encode_utf8);
 
 my $dir = "/home/alex/src/trunk";            # FIXME
 my $uri = "https://communitywiki.org/trunk"; # FIXME
@@ -33,7 +33,8 @@ plugin 'Config' => {default => {users => {}}};
 sub to_markdown {
   my $file = shift;
   my $path = Mojo::File->new("$dir/$file");
-  my $md = $path->slurp || die "Cannot open $dir/$file: $!";
+  return '' unless -e $path;
+  my $md = $path->slurp;
   return markdown(decode_utf8($md));
 }
 
@@ -85,7 +86,8 @@ get '/grab/:name' => sub {
   my $name = $c->param('name');
   my $path = Mojo::File->new("$dir/$name.txt");
   my @accounts = sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
-  $c->render(template => 'grab', name => $name, accounts => \@accounts);
+  my $description = to_markdown("$name.md");
+  $c->render(template => 'grab', name => $name, accounts => \@accounts, description => $description);
 } => 'grab';
 
 get '/follow/:name' => sub {
@@ -249,7 +251,7 @@ get '/admin' => sub {
 sub administrators {
   my $file = 'index.md';
   my $path = Mojo::File->new("$dir/$file");
-  my $text = $path->slurp || die "Cannot open $dir/$file: $!";
+  my $text = decode_utf8($path->slurp) || die "Cannot open $dir/$file: $!";
   my @admins;
   while ($text =~ /^- \[(@\S+)\]/mg) {
     push(@admins, $1);
@@ -273,14 +275,20 @@ get '/request' => sub {
 
 get 'do/request' => sub {
   my $c = shift;
+  my $account = $c->param('account');
+  $account =~ s/^\s+//; # trim leading whitespace
+  $account =~ s/\s+$//; # trim trailing whitespace
+  $account =~ s/^@//;   # trim extra @ at the beginning
+  $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
+  my ($username, $instance) = split(/@/, $account);
   my $hash = $c->req->query_params->to_hash;
-  $log->debug(join(" ", keys %$hash));
+  delete $hash->{account};
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
   local $" = ", ";
   my $admins = administrators();
   my $lucky = $admins->[int(rand(@$admins))];
   my $text = url_escape("$lucky Please add me to @lists. #Trunk");
-  my $url = "web+mastodon://share?text=$text";
+  my $url = "https://$instance/share?text=$text";
   $c->render(template => 'request_done',
 	     url => $url);
 } => 'do_request';
@@ -337,7 +345,7 @@ get '/log' => sub {
   }
   # we can't use $log->history because that might be empty after a restart
   my $path = Mojo::File->new($log->path);
-  my @lines = split(/\n/,$path->slurp);
+  my @lines = split(/\n/, decode_utf8($path->slurp));
   my $n = @lines < 30 ? @lines : 30;
   $c->render(log => join("\n", @lines[-$n .. -1]));
 };
@@ -350,7 +358,7 @@ get '/log/all' => sub {
   }
   # we can't use $log->history because that might be empty after a restart
   my $path = Mojo::File->new($log->path);
-  $c->render(text => $path->slurp, format => 'txt');
+  $c->render(text => decode_utf8($path->slurp), format => 'txt');
 } => 'log_all';
 
 
@@ -401,6 +409,7 @@ post '/do/add' => sub {
   $account =~ s/\s+$//; # trim trailing whitespace
   $account =~ s/^@//;   # trim extra @ at the beginning
   $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
+  return error($c, "Please provide an account.") unless $account;
   my $hash = $c->req->body_params->to_hash;
   delete $hash->{account};
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
@@ -431,9 +440,7 @@ sub remove_account {
     if ($accounts[$i] eq $account) {
       backup($path);
       splice(@accounts, $i, 1);
-      my $fh = $path->open(">:encoding(UTF-8)") || die "Cannot write to $path: $!";
-      print $fh join("\n", @accounts, ""); # empty string ensures final newline
-      close($fh);
+      $path->spurt(encode_utf8(join("\n", @accounts, "")));
       return 1;
     }
   }
@@ -482,9 +489,9 @@ post '/do/search' => sub {
     return $c->redirect_to($c->url_for('login')->query(action => 'search'));
   }
   my $account = $c->param('account');
-  return error($c, "Please provide an account.") unless $account;
   $account =~ s/^\s+//; # trim leading whitespace
   $account =~ s/\s+$//; # trim trailing whitespace
+  return error($c, "Please provide an account.") unless $account;
   my %accounts;
   for my $file (<$dir/*.txt>) {
     next unless -s $file;
@@ -577,6 +584,51 @@ post '/do/rename' => sub {
 } => 'do_rename';
 
 
+get '/describe' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'describe'));
+  }
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(template => 'describe', lists => \@lists);
+};
+
+
+post '/do/describe' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'describe'));
+  }
+
+  my $user = $c->current_user->{username};
+
+  my $name = $c->param('name');
+  return error($c, "Please pick a list to describe.") unless $name;
+
+  my $description = $c->param('description');
+
+  my $path = Mojo::File->new("$dir/$name.md");
+
+  if ($description) {
+
+    backup($path) if -e $path;
+    $log->info("$user described $name");
+    $path->spurt(encode_utf8($description));
+    $c->render(template => 'do_describe', name => $name, description => $description, saved => 1);
+
+  } else {
+
+    $description = decode_utf8($path->slurp) if -e $path;
+    $c->render(template => 'do_describe', name => $name, description => $description, saved => 0);
+
+  }
+} => 'do_describe';
+
+
 app->defaults(layout => 'default');
 app->start;
 
@@ -644,6 +696,8 @@ name => $name) => (class => 'button') => begin %>Let's do this<% end %></p>
 % title 'Grab a List';
 <h1><%= $name %></h1>
 
+<%== $description %>
+
 <p>Below are some people for you to follow. If you click the button below in
 order to follow them all, what will happen is that we will create a list called
 <em><%= $name %></em> for your account and we'll put any of these that you're
@@ -701,6 +755,8 @@ new statuses, they will appear here."</blockquote>
 <%== $md %>
 
 %= form_for do_request => begin
+%= label_for account => 'Account'
+%= text_field 'account'
 
 <p>
 % join("\n", map {
@@ -716,9 +772,8 @@ new statuses, they will appear here."</blockquote>
 % title 'Request List Membership';
 <h1>Please confirm</h1>
 
-<p>OK, ready? If you click the link below, you should get sent to your instance.
-(Remember where it asked you whether you wanted to register the instance as an
-"application"? This is where the information gets used. 🙂)</p>
+<p>OK, ready? If you click the link below, you should get sent to your instance,
+your request ready to toot. 📯</p>
 
 <p><%= link_to $url => (class => 'button') => begin %>Add Me<% end %></p>
 
@@ -737,6 +792,7 @@ logged, just in case.</p>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
 <li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
+<li><%= link_to 'Describe a list' => 'describe' %></li>
 <li><%= link_to 'Check the log' => 'log' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
@@ -950,6 +1006,54 @@ or
 </p>
 
 
+@@ describe.html.ep
+% title 'Describe a list';
+<h1>Describe a list</h1>
+
+%= form_for do_describe => begin
+
+<p>List to describe:
+% for my $name (@$lists) {
+<label><%= radio_button name => $name %><%= $name %></label>
+% }
+</p>
+
+<p>Special descriptions:
+<label><%= radio_button name => "index" %>the front page</label>
+and
+<label><%= radio_button name => "request" %>the request to join</label>.
+</p>
+
+%= submit_button
+% end
+
+
+@@ do_describe.html.ep
+% title 'Describe a list';
+<h1>Describe <%= $name %></h1>
+
+% if ($saved) {
+<p>Description saved.
+<%= link_to $c->url_for('grab', {name => $name}) => begin %>Check it out<% end %>.
+</p>
+% }
+
+<p>This is where you can edit the description that goes at the top of the <%=
+link_to $c->url_for('grab', {name => $name}) => begin %><%= $name %><% end %>
+list. Please use Markdown. Feel free to link to Wikipedia, e.g.
+<code>[Markdown](https://en.wikipedia.org/wiki/Markdown)</code>.</p>
+
+%= form_for do_describe => begin
+<p>
+%= hidden_field name => $name
+%= text_area 'description' => $description
+</p>
+<p>
+%= submit_button
+</p>
+% end
+
+
 @@ login.html.ep
 % layout 'default';
 % title 'Login';
@@ -1029,6 +1133,8 @@ ul.follow { padding: 5px 0 }
 .alert { font-weight: bold; }
 .login label { display: inline-block; width: 12ex; }
 label { white-space:  nowrap; }
+textarea { width: 100%; height: 10ex; font-size: inherit; }
+input { font-size: inherit; }
 @media only screen and (max-device-width: 600px) {
   body { padding: 0; }
   h1, p { padding: 0; margin: 5px 0; }

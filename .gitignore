@@ -1,4 +1,5 @@
 *.txt
+[^a-z]*.md
 /credentials
 /admin.log
 /trunk.conf
