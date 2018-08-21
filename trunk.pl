@@ -17,7 +17,7 @@
 
 use Mojolicious::Lite;
 use Mastodon::Client;
-use Mojo::File;
+use MCE::Loop chunk_size => 1;
 use Mojo::Log;
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8);
@@ -166,6 +166,21 @@ sub client {
   return $client;
 }
 
+sub follow {
+  my $client = shift;
+  my $list_id = shift;
+  my $acct = shift;
+  my $account;
+
+  eval { $account = $client->remote_follow($acct) };
+  return "Could not follow $acct" if $@;
+
+  eval { $client->post("lists/$list_id/accounts" => {account_ids => [$account->{id}]}) };
+  return "Could not add $acct to the list" if $@;
+
+  return "Followed $acct";
+}
+
 get 'do/follow' => sub {
   my $c = shift;
 
@@ -189,60 +204,26 @@ get 'do/follow' => sub {
 		 . "This will not work since we're not saving the access token.");
   }
 
+  # Create the list and add the new accounts we're following to the new list, if
+  my $list = $client->post('lists', {title => $name});
+  if ($@) {
+    return error("List creation of $name failed");
+  }
+  my $list_id = $list->{id};
+
   # get the new accounts we're supposed to follow (strings)
   my $path = Mojo::File->new("$dir/$name.txt");
   my @accts = split(" ", $path->slurp);
 
-  # increase timeout (default is 15s)
-  $c->inactivity_timeout(180);
+  # work in parallel and gather results
+  my @results = mce_loop {
+    MCE->gather(follow($client, $list_id, $_));
+  } @accts;
 
-  my @changes;
-  my @errors;
-
-  for my $acct(@accts) {
-    eval {
-      my $account = $client->remote_follow($acct);
-      push(@changes, $account);
-    };
-    if ($@) {
-      push(@errors, "Could not follow $acct");
-      next;
-    }
-  }
-
-  if (@changes) {
-
-    # Create the list and add the new accounts we're following to the new list, if
-    my $list = $client->post('lists', {title => $name});
-
-    if ($@) {
-      push(@errors, "List creation of $name failed");
-    } else {
-
-      my $id = $list->{id};
-
-      for my $account (@changes) {
-	# we used to add all in one swoop but often we got errors and didn't know
-	# why so now we're adding each separately
-	eval {
-	  $client->post("lists/$id/accounts" => {account_ids => [$account->{id}]});
-	};
-	if ($@) {
-	  push(@errors, "Could not add $account->{acct} to $name");
-	}
-      }
-    }
-  }
-
-  # done!
-  if (@changes) {
-    $c->render(template => 'follow_done', name => $name,
-	       accts => [ map { $_->{acct} } @changes],
-	       errors => \@errors);
-  } else {
-    $c->render(template => 'no_follow_done', name => $name,
-	       errors => \@errors);
-  }
+  # done
+  $c->render(template => 'follow_done',
+	     name => $name,
+	     results => \@results);
 } => 'do_follow';
 
 
@@ -666,45 +647,13 @@ new statuses, they will appear here."</blockquote>
 
 <P>Enjoy! 👍</p>
 
-<p>These are the new accounts you're following, now:</p>
+<p>Results:</p>
 
 <ul>
-% for my $account (@$accts) {
-<li>
-% my ($username, $instance) = split(/@/, $account);
-<a href="https://<%= $instance %>/@<%= $username %>">
-%= $account
-</a>
-</li>
+% for my $result (@$results) {
+<li><%= $result %></li>
 % }
 </ul>
-
-% if (@$errors) {
-<p>Sadly, there were also some errors:</p>
-
-<ul>
-%   for my $error (@$errors) {
-<li><%= $error %></li>
-%   }
-</ul>
-% }
-
-
-@@ no_follow_done.html.ep
-% title 'Nothing to do';
-<h1>Nothing to do!</h1>
-
-<p>We made no changes.</p>
-
-% if ($errors) {
-<p>These were the errors reported to us:</p>
-
-<ul>
-%   for my $error (@$errors) {
-<li><%= $error %></li>
-%   }
-</ul>
-% }
 
 
 @@ admin.html.ep
