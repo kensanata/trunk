@@ -87,7 +87,10 @@ get '/grab/:name' => sub {
   my $path = Mojo::File->new("$dir/$name.txt");
   my @accounts = sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
   my $description = to_markdown("$name.md");
-  $c->render(template => 'grab', name => $name, accounts => \@accounts, description => $description);
+  my $md = to_markdown('grab.md');
+  $md =~ s/\$name/$name/g;
+  $c->render(template => 'grab', name => $name, accounts => \@accounts,
+	     description => $description, md => $md);
 } => 'grab';
 
 get '/follow/:name' => sub {
@@ -698,19 +701,11 @@ name => $name) => (class => 'button') => begin %>Let's do this<% end %></p>
 
 <%== $description %>
 
-<p>Below are some people for you to follow. If you click the button below in
-order to follow them all, what will happen is that we will create a list called
-<em><%= $name %></em> for your account and we'll put any of these that you're
-not already following into this list. If you already have a list with the same
-name, don't worry: you can have lists sharing the same name.</p>
+<%== $md %>
 
 <p class="needspace">
 <%= link_to url_for('follow')->query(name => $name) => (class => 'button') => begin %>Follow <%= $name %><% end %>
 </p>
-
-<p>Here's the list of accounts for the <em><%= $name %></em> list. You can of
-course pick and choose instead of following them all, using Mastodon's
-<em>remote follow</em> feature.</p>
 
 <ul class="follow">
 % for my $account (@$accounts) {
@@ -1019,9 +1014,10 @@ or
 </p>
 
 <p>Special descriptions:
-<label><%= radio_button name => "index" %>the front page</label>
+<label><%= radio_button name => "index" %>the front page</label>,
+<label><%= radio_button name => "request" %>the request to join</label>,
 and
-<label><%= radio_button name => "request" %>the request to join</label>.
+<label><%= radio_button name => "grab" %>the intro to the grab page</label>.
 </p>
 
 %= submit_button
