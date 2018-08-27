@@ -88,6 +88,8 @@ get '/grab/:name' => sub {
   my @accounts = sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
   my $description = to_markdown("$name.md");
   my $md = to_markdown('grab.md');
+  $md =~ s/\$name_encoded/url_escape($name)/ge;
+  $md =~ s/\$uri/$uri/ge;
   $md =~ s/\$name/$name/g;
   $c->render(template => 'grab', name => $name, accounts => \@accounts,
 	     description => $description, md => $md);
