@@ -425,7 +425,7 @@ post '/do/add' => sub {
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
   if ($c->param('message')
       && $c->param('message') =~ /Please add me to ([^.]+)\./) {
-    push(@lists, split(/ ,/, $1));
+    push(@lists, split(/,\s+/, $1));
   }
   local $" = ", ";
   $log->info("$user added $account to @lists");
