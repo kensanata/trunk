@@ -643,6 +643,24 @@ post '/do/describe' => sub {
 } => 'do_describe';
 
 
+get '/api/v1/list' => sub {
+  my $c = shift;
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(json => \@lists);
+};
+
+get '/api/v1/list/:name' => sub {
+  my $c = shift;
+  my $name = $c->param('name');
+  my $path = Mojo::File->new("$dir/$name.txt");
+  my @accounts = map { { acct => $_ } } sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
+  $c->render(json => \@accounts);
+};
+
 app->defaults(layout => 'default');
 app->start;
 
