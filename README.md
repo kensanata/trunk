@@ -7,9 +7,60 @@ free, open-source, decentralized microblogging network.
 Issues, feature requests and all that: use the
 [Software Wiki](https://alexschroeder.ch/software/Trunk).
 
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+- [Logo](#logo)
+- [API](#api)
+    - [Getting the lists](#getting-the-lists)
+    - [Getting the accounts in a list](#getting-the-accounts-in-a-list)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Bugs](#bugs)
+
+<!-- markdown-toc end -->
+
+
 ## Logo
 
 Logo kindly donated by [Jens Reuterberg](https://www.ohyran.se/).
+
+## API
+
+There's a simple API right now.
+
+### Getting the lists
+
+```
+/trunk/api/v1/list
+```
+
+This returns a list of strings. Each of these strings is a list name.
+
+Example:
+
+```
+curl https://communitywiki.org/trunk/api/v1/list
+```
+
+### Getting the accounts in a list
+
+```
+/trunk/api/v1/list/:name
+```
+
+This returns a list of objects. Each of these objects has the following attribute:
+
+* `acct` is what the simple account, e.g. `kensanata@octodon.social`
+
+Needless to say, the list name has to be encoded appropriately.
+
+Example:
+
+```
+curl https://communitywiki.org/trunk/api/v1/list/Information%20Technology
+```
 
 ## Installation
 
