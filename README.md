@@ -94,6 +94,28 @@ morbo trunk.pl
 This allows you to make changes to `trunk.pl` and check the result on
 `localhost:3000` after every save.
 
+## Configuration
+
+You need a config file in the same directory, called `trunk.conf`.
+This is where you define your admins, if any.
+
+No admins:
+
+```perl
+{}
+```
+
+One admin:
+
+```perl
+{
+  users => { alex => 'fantastic password!' },
+}
+```
+
+## Deployment
+
+
 Once you are ready to deploy there are various options. The simplest
 option is to just start it as a daemon, but listening to a different
 port:
@@ -145,77 +167,6 @@ Here's what it does:
 - and finally, requests to `https://communitywiki.org/trunk` get
   passed on to port 8080, which is where our server is waiting
 
-- we also pass requests to `https://communitywiki.org/mojo` on to port
-  8080 because that gives us the rainbow dinosaur when the server runs
-  into errors
-
-```
-<VirtualHost *:80>
-    ServerName communitywiki.org
-    ServerAlias www.communitywiki.org
-    Redirect permanent / https://communitywiki.org/
-</VirtualHost>
-<VirtualHost *:443>
-    ServerName www.communitywiki.org
-    Redirect permanent / https://communitywiki.org/
-    SSLEngine on
-    SSLCertificateFile      /var/lib/dehydrated/certs/communitywiki.org/cert.pem
-    SSLCertificateKeyFile   /var/lib/dehydrated/certs/communitywiki.org/privkey.pem
-    SSLCertificateChainFile /var/lib/dehydrated/certs/communitywiki.org/chain.pem
-    SSLVerifyClient None
-</VirtualHost>
-<VirtualHost *:443>
-    ServerAdmin alex@communitywiki.org
-    ServerName communitywiki.org
-    DocumentRoot /home/alex/communitywiki.org
-
-    RewriteEngine on
-    RewriteCond "%{HTTP_USER_AGENT}" "Mastodon" [OR]
-    RewriteCond "%{HTTP_USER_AGENT}" "Pcore"
-    RewriteRule ".*" "-" [redirect=403,last]
-
-    SSLEngine on
-    SSLCertificateFile      /var/lib/dehydrated/certs/communitywiki.org/cert.pem
-    SSLCertificateKeyFile   /var/lib/dehydrated/certs/communitywiki.org/privkey.pem
-    SSLCertificateChainFile /var/lib/dehydrated/certs/communitywiki.org/chain.pem
-    SSLVerifyClient None
-
-    ProxyPass /mojo             http://communitywiki.org:8080/mojo
-    ProxyPass /trunk            http://communitywiki.org:8080/trunk
-
-</VirtualHost>
-```
-
-## Configuration
-
-You need a config file in the same directory, called `trunk.conf`.
-This is where you define your admins, if any.
-
-No admins:
-
-```perl
-{}
-```
-
-One admin:
-
-```perl
-{
-  users => { alex => 'fantastic password!' },
-}
-```
-
-## Deployment
-
-I'd say, run it using `morbo` and click around. If it appears to work,
-either start is as a daemon, or use `hypnotoad` (which is part of
-Mojolicious). If you already have other Mojolicious applications, use
-[Toadfarm](https://metacpan.org/pod/Toadfarm). If you want the
-features of your regular webserver as well, use it as a proxy.
-
-On my system, for example, I use `Toadfarm` to start it. It listens on
-port 8080. My site is served by Apache:
-
 ```apache
 <VirtualHost *:80>
     # all HTTP gets redirected to HTTPS
@@ -238,18 +189,11 @@ port 8080. My site is served by Apache:
     ServerAdmin alex@communitywiki.org
     ServerName communitywiki.org
     DocumentRoot /home/alex/communitywiki.org
-	# you definitely need to look at this part
-    <Directory /home/alex/communitywiki.org>
-        # need CGI Script execution for legacy apps
-        Options ExecCGI Includes Indexes MultiViews SymLinksIfOwnerMatch
-        AddHandler cgi-script .pl
-        AllowOverride All
-		Require all granted
-    </Directory>
 
-    # block Mastodon from fetching preview images and bringing my server down
+    # block Mastodon and others from fetching preview images and bringing my server down
     RewriteEngine on
-    RewriteCond "%{HTTP_USER_AGENT}" "Mastodon"
+    RewriteCond "%{HTTP_USER_AGENT}" "Mastodon" [OR]
+    RewriteCond "%{HTTP_USER_AGENT}" "Pcore"
     RewriteRule ".*" "-" [redirect=403,last]
 
 	# same as above; this uses dehydrated to manage certificates by Let's Encrypt
@@ -259,15 +203,34 @@ port 8080. My site is served by Apache:
     SSLCertificateChainFile /var/lib/dehydrated/certs/communitywiki.org/chain.pem
     SSLVerifyClient None
 
-	# these are the various applications running here, we only care about the last one
-    ProxyPass /wiki             http://communitywiki.org:8080/wiki
-    ProxyPass /mark             http://communitywiki.org:8080/mark
-    ProxyPass /mojo             http://communitywiki.org:8080/mojo
-    ProxyPass /food             http://communitywiki.org:8080/food
-    ProxyPass /trunk            http://communitywiki.org:8080/trunk
+	# this is the web application we care about
+    ProxyPass /trunk            http://communitywiki.org:8080
 
 </VirtualHost>
 ```
+
+Actually, if you want to run multiple applications, they each need to
+listen on a different port, or you make them listen for a different
+mount point.
+
+Assume you change the Apache config file above to end with the following:
+
+```
+    # with a mount point
+    ProxyPass /trunk            http://communitywiki.org:8080/trunk
+```
+
+Then create a new Mojolicious application which does nothing else but
+use the `Mount` plugin to mount `trunk.pl` under `/trunk`:
+
+```perl
+use Mojolicious::Lite;
+plugin Mount => {'/trunk' => './trunk.pl'};
+app->start;
+```
+
+Now start this file instead of `trunk.pl` using `hypnotoad` and it
+should still work.
 
 ## Bugs
 
