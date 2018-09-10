@@ -20,6 +20,7 @@ use Mastodon::Client;
 use MCE::Loop chunk_size => 1;
 use Mojo::Util qw(url_escape);
 use Mojo::Log;
+use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
 
@@ -301,19 +302,20 @@ get 'do/request' => sub {
 plugin 'authentication', {
     autoload_user => 1,
     load_user => sub {
-        my ($self, $username) = @_;
-        return {
-	  'username' => $username,
-	} if app->config('users')->{$username};
-        return undef;
+      my ($self, $username) = @_;
+      return {
+	'username' => $username,
+      } if app->config('users')->{$username};
+      return undef;
     },
     validate_user => sub {
-        my ($self, $username, $password) = @_;
-	if (app->config('users')->{$username}
-	    && $password eq app->config('users')->{$username}) {
-	  return $username;
-	}
-        return undef;
+      my ($self, $username, $password) = @_;
+      return undef unless $username and $password;
+      if (app->config('users')->{$username}
+	  && $password eq app->config('users')->{$username}) {
+	return $username;
+      }
+      return undef;
     },
 };
 
@@ -659,6 +661,53 @@ get '/api/v1/list/:name' => sub {
   my $path = Mojo::File->new("$dir/$name.txt");
   my @accounts = map { { acct => $_ } } sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
   $c->render(json => \@accounts);
+};
+
+get '/api/v1/queue' => sub {
+  my $c = shift;
+  my $path = Mojo::File->new("$dir/queue");
+  return $c->render(json => []) unless -e $path;
+  my $data = decode_json $path->slurp;
+  $c->render(json => $data);
+};
+
+post '/api/v1/queue' => sub {
+  my $c = shift;
+  $c->authenticate($c->param('username'), $c->param('password'));
+  return error($c, "Must be authenticated") unless $c->is_user_authenticated();
+
+  my $acct = $c->param('acct');
+  return error($c, "Missing acct parameter") unless $acct;
+
+  my $names = $c->every_param('name');
+  return error($c, "Missing name parameter") unless @$names;
+
+  $log->info("enqueued $acct for @$names");
+  my $path = Mojo::File->new("$dir/queue");
+  my $data;
+  $data = decode_json $path->slurp if -e $path;
+  push(@$data, {acct => $acct, names => $names});
+  $path->spurt(encode_json $data);
+  $c->render(text => 'OK');
+};
+
+del '/api/v1/queue' => sub {
+  my $c = shift;
+  return error($c, "Must be authenticated") unless $c->is_user_authenticated();
+  my $acct = $c->param('acct') || return error($c, "Missing acct parameter");
+  $log->info("dequeued $acct");
+  my $path = Mojo::File->new("$dir/queue");
+  my $data = decode_json $path->slurp;
+  my $i = 0;
+  while ($i < @$data) {
+    if ($data->[$i]->{acct} eq $acct) {
+      splice(@$data, $i, 1);
+    } else {
+      $i++;
+    }
+  }
+  $path->spurt(encode_json $data);
+  $c->render(text => 'OK');
 };
 
 app->defaults(layout => 'default');

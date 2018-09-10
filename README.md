@@ -33,7 +33,7 @@ There's a simple API right now.
 ### Getting the lists
 
 ```
-/trunk/api/v1/list
+GET /trunk/api/v1/list
 ```
 
 This returns a list of strings. Each of these strings is a list name.
@@ -47,12 +47,12 @@ curl https://communitywiki.org/trunk/api/v1/list
 ### Getting the accounts in a list
 
 ```
-/trunk/api/v1/list/:name
+GET /trunk/api/v1/list/:name
 ```
 
 This returns a list of objects. Each of these objects has the following attribute:
 
-* `acct` is what the simple account, e.g. `kensanata@octodon.social`
+* `acct` is the simple account, e.g. `kensanata@octodon.social`
 
 Needless to say, the list name has to be encoded appropriately.
 
@@ -61,6 +61,44 @@ Example:
 ```
 curl https://communitywiki.org/trunk/api/v1/list/Information%20Technology
 ```
+
+### Get the queue
+
+```
+GET /trunk/api/v1/queue
+```
+
+You will get back a list of objects with the following attributes:
+
+* `acct` is the simple account, e.g. `kensanata@octodon.social`
+* `names` is a list of existing list names
+
+The oldest items in the queue come first.
+
+### Add to the queue
+
+```
+POST /trunk/api/v1/queue
+```
+
+You need to pass the following parameters:
+
+* `username` is your username as provided for admins
+* `password` is your password as provided for admins
+* `acct` is the simple account, e.g. `kensanata@octodon.social`
+* `name` is the name an existing list (may occur multiple times)
+
+### Remove from the queue
+
+```
+DELETE /trunk/api/v1/queue
+```
+
+You need to pass along an object with the following attribute:
+
+* `username` is your username as provided for admins
+* `password` is your password as provided for admins
+* `acct` is the simple account, e.g. `kensanata@octodon.social`
 
 ## Installation
 
