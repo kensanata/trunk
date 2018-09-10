@@ -252,6 +252,13 @@ get '/admin' => sub {
   $c->render();
 };
 
+get '/help' => sub {
+  my $c = shift;
+  my $md = to_markdown('help.md');
+  $c->render(template => 'markdown',
+	     title => "Trunk Help",
+	     md => $md);
+};
 
 sub administrators {
   my $file = 'index.md';
@@ -1058,6 +1065,7 @@ or
 
 <p>Special descriptions:
 <label><%= radio_button name => "index" %>the front page</label>,
+<label><%= radio_button name => "help" %>the help page</label>,
 <label><%= radio_button name => "request" %>the request to join</label>,
 and
 <label><%= radio_button name => "grab" %>the intro to the grab page</label>.
@@ -1127,6 +1135,10 @@ You have been logged out.
 Go back to the <%= link_to 'main menu' => 'main' %>.
 
 
+@@ markdown.html.ep
+<%== $md %>
+
+
 @@ error.html.ep
 % title 'Error';
 <h1>Error</h1>
@@ -1191,6 +1203,7 @@ input { font-size: inherit; }
 <a href="https://communitywiki.org/trunk">Trunk</a>&#x2003;
 <a href="https://alexschroeder.ch/cgit/trunk/about/">Source</a>&#x2003;
 <%= link_to 'Admins' => 'admin' %>&#x2003;
+<%= link_to 'Help' => 'help' %>&#x2003;
 <a href="https://alexschroeder.ch/wiki/Contact">Alex Schroeder</a>
 </body>
 </html>
