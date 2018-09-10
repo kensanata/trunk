@@ -215,7 +215,7 @@ mount point.
 
 Assume you change the Apache config file above to end with the following:
 
-```
+```apache
     # with a mount point
     ProxyPass /trunk            http://communitywiki.org:8080/trunk
 ```
