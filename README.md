@@ -84,6 +84,14 @@ Then use `cpanm` to install the following:
 - `Text::Markdown`
 - `MCE`
 
+If these modules get installed into `~/perl5` then you need to make
+sure `~/perl5/bin` is in your `PATH`. At the end of my `~/.bashrc`,
+for example:
+
+```bash
+PATH="/home/alex/perl5/bin${PATH:+:${PATH}}"; export PATH;
+```
+
 You should now be able to run the web application. From the working
 directory, start the development server:
 
