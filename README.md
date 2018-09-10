@@ -85,11 +85,12 @@ Then use `cpanm` to install the following:
 - `MCE`
 
 If these modules get installed into `~/perl5` then you need to make
-sure `~/perl5/bin` is in your `PATH`. At the end of my `~/.bashrc`,
-for example:
+sure `~/perl5/bin` is in your `PATH` and that `/perl5/lib/perl5` is in
+your `PERL5LIB`. At the end of my `~/.bashrc`, for example:
 
 ```bash
 PATH="/home/alex/perl5/bin${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="/home/alex/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
 ```
 
 You should now be able to run the web application. From the working
