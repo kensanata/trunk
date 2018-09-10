@@ -410,6 +410,10 @@ post '/do/add' => sub {
   }
   my $user = $c->current_user->{username};
   my $account = $c->param('account');
+  if (!$account && $c->param('message')
+      && $c->param('message') =~ /@(\S+@\S+)/) {
+    $account = $1;
+  }
   $account =~ s/^\s+//; # trim leading whitespace
   $account =~ s/\s+$//; # trim trailing whitespace
   $account =~ s/^@//;   # trim extra @ at the beginning
@@ -417,7 +421,12 @@ post '/do/add' => sub {
   return error($c, "Please provide an account.") unless $account;
   my $hash = $c->req->body_params->to_hash;
   delete $hash->{account};
+  delete $hash->{message};
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
+  if ($c->param('message')
+      && $c->param('message') =~ /Please add me to ([^.]+)\./) {
+    push(@lists, split(/,\s+/, $1));
+  }
   local $" = ", ";
   $log->info("$user added $account to @lists");
   for my $name (@lists) {
@@ -634,6 +643,24 @@ post '/do/describe' => sub {
 } => 'do_describe';
 
 
+get '/api/v1/list' => sub {
+  my $c = shift;
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(json => \@lists);
+};
+
+get '/api/v1/list/:name' => sub {
+  my $c = shift;
+  my $name = $c->param('name');
+  my $path = Mojo::File->new("$dir/$name.txt");
+  my @accounts = map { { acct => $_ } } sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
+  $c->render(json => \@accounts);
+};
+
 app->defaults(layout => 'default');
 app->start;
 
@@ -816,10 +843,24 @@ This is currently the end of the log file:
 % title 'Add an account';
 <h1>Add an account</h1>
 
-<p>Both forms, <em>https://octodon.social/@kensanata</em> and
-<em>kensanata@gmail.com</em> are accepted.</p>
+<p>Their request, e.g.:</p>
+
+<blockquote>
+<p>Alex Schroeder 🐝 @kensanata@octodon.social</p>
+<p>@eloisa Please add me to Digital Rights, FLOSS, Mastodon, Privacy. #Trunk</p>
+</blockquote>
 
 %= form_for do_add => begin
+%= text_area 'message'
+
+<p>If you paste a request like the one above, you're done.</p>
+
+%= submit_button
+
+<p>Alternatively, provide the account here. You can either provide the URL to
+the account (such as <em>https://octodon.social/@kensanata</em>) or the account
+itself (such as <em>kensanata@gmail.com</em>).</p>
+
 %= label_for account => 'Account'
 %= text_field 'account'
 
