@@ -13,7 +13,18 @@ Logo kindly donated by [Jens Reuterberg](https://www.ohyran.se/).
 
 ## Installation
 
-If you want to install it, you need a reasonable Perl installation. Use `cpanm` to install the following:
+If you want to install it, you need a reasonable Perl installation. If
+this is your only Perl application you're developing, I'm not going to
+bother telling you about [Perlbrew](https://perlbrew.pl/), which
+allows you to install multiple versions of Perl. I'm just going to
+assume you have a system with Perl installed.
+
+The first thing I suggest you do is install a better tool to install
+your dependencies: `cpanm` from the `App::cpanminus` package.
+
+- [Installing App::cpanminus](https://metacpan.org/pod/App::cpanminus#INSTALLATION)
+
+Then use `cpanm` to install the following:
 
 - `Mojolicious`
 - `Mojolicious::Plugin::Config`
@@ -21,6 +32,108 @@ If you want to install it, you need a reasonable Perl installation. Use `cpanm` 
 - `Mastodon::Client`
 - `Text::Markdown`
 - `MCE`
+
+You should now be able to run the web application. From the working
+directory, start the development server:
+
+```
+morbo trunk.pl
+```
+
+This allows you to make changes to `trunk.pl` and check the result on
+`localhost:3000` after every save.
+
+Once you are ready to deploy there are various options. The simplest
+option is to just start it as a daemon, but listening to a different
+port:
+
+```
+perl trunk.pl daemon --listen "http://*:8080"
+```
+
+The next option you have is to use a tool called `hypnotoad` which
+should have come with one of the dependencies you installed. This
+defaults to port 8080, so you're good:
+
+```
+hypnotoad trunk.pl
+```
+
+If you change the file, you can restart it gracefully with zero
+downtime by simply running the same command again.
+
+Hypnotoad writes a PID into the `hypnotoad.pid` file so in order to
+kill the server, use the following:
+
+```
+kill $(cat hypnotoad.pid)
+```
+
+Ideally, you would be running the application on your server using
+Hypnotoad and use Apache in front of it. Here's an example site
+configuration from my `/etc/apache2/sites-enabled` directory.
+Here's what it does:
+
+- it redirects HTTP requests from port 80 to port 443 for both
+  `communitywiki.org` and `www.communitywiki.org`
+
+- it redirects `www.communitywiki.org` to `communitywiki.org`,
+  specifying the certificates I got from [Let's
+  Encrypt](https://letsencrypt.org/) which I manage using
+  [dehydrated](https://github.com/lukas2511/dehydrated#dehydrated-)
+  (you need to find your own favorite way of securing your site)
+
+- it serves static files from `/home/alex/communitywiki.org`, the
+  document root, for `communitywiki.org` using SSL, as described above
+  (you might want to change the directory, of course)
+
+- if a client identifies as Mastodon or Pcore, we tell them that
+  they're forbidden (403), because these clients have brought this
+  particular site down in the past (this is entirely optional)
+
+- and finally, requests to `https://communitywiki.org/trunk` get
+  passed on to port 8080, which is where our server is waiting
+
+- we also pass requests to `https://communitywiki.org/mojo` on to port
+  8080 because that gives us the rainbow dinosaur when the server runs
+  into errors
+
+```
+<VirtualHost *:80>
+    ServerName communitywiki.org
+    ServerAlias www.communitywiki.org
+    Redirect permanent / https://communitywiki.org/
+</VirtualHost>
+<VirtualHost *:443>
+    ServerName www.communitywiki.org
+    Redirect permanent / https://communitywiki.org/
+    SSLEngine on
+    SSLCertificateFile      /var/lib/dehydrated/certs/communitywiki.org/cert.pem
+    SSLCertificateKeyFile   /var/lib/dehydrated/certs/communitywiki.org/privkey.pem
+    SSLCertificateChainFile /var/lib/dehydrated/certs/communitywiki.org/chain.pem
+    SSLVerifyClient None
+</VirtualHost>
+<VirtualHost *:443>
+    ServerAdmin alex@communitywiki.org
+    ServerName communitywiki.org
+    DocumentRoot /home/alex/communitywiki.org
+
+    RewriteEngine on
+    RewriteCond "%{HTTP_USER_AGENT}" "Mastodon" [OR]
+    RewriteCond "%{HTTP_USER_AGENT}" "Pcore"
+    RewriteRule ".*" "-" [redirect=403,last]
+
+    SSLEngine on
+    SSLCertificateFile      /var/lib/dehydrated/certs/communitywiki.org/cert.pem
+    SSLCertificateKeyFile   /var/lib/dehydrated/certs/communitywiki.org/privkey.pem
+    SSLCertificateChainFile /var/lib/dehydrated/certs/communitywiki.org/chain.pem
+    SSLVerifyClient None
+
+    ProxyPass /mojo             http://communitywiki.org:8080/mojo
+    ProxyPass /trunk            http://communitywiki.org:8080/trunk
+
+</VirtualHost>
+```
 
 ## Configuration
 
