@@ -4,3 +4,5 @@
 /admin.log
 /trunk.conf
 /queue
+/*.client
+/*.user

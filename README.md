@@ -303,3 +303,71 @@ diff -u /home/alex/perl5/lib/perl5/Mastodon/Client.pm\~ /home/alex/perl5/lib/per
 
 Diff finished.  Wed Aug 15 09:48:54 2018
 ```
+
+# Queue Bot
+
+The Trunk interface has a queue which can be fed using the API. One
+way of doing that involves a bot. This bot is written in Python.
+Assuming you have a Python 3 installation, here's how to install the
+prerequisites:
+
+```
+pip3 install Mastodon.py
+pip3 install requests
+```
+
+## First, create a bot account and set everything up
+
+Mastodon provides a UI for all of this. Just go to your settings and
+under the "developer" menu there is a place to create a new app and
+get your credentials all in one go. We've set up *trunk@botsin.space*
+for us.
+
+Got to Settings → Development and create a new application.
+
+1. give it the name of your Trunk instance
+2. use the URL for your Trunk instance
+3. don't change the default URI
+4. we need read:notifications, read:statuses, write:notifications, and
+   write:statuses
+5. submit
+6. click on the link to your application
+
+You need to save the three codes you got as follows:
+
+The *Client Key* and *Client Secret* go into the first file, each on a
+line of its own. The filename is `<account>.client`, for example
+`trunk@botsin.space.client`.
+
+Example content:
+
+```
+1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+```
+
+The *Access Token* goes to a separate file called `<account>.user`,
+for example `trunk@botsin.space.user`.
+
+Example content:
+
+```
+7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456
+```
+
+## Finally, invoke it
+
+You need to invoke the bot with the user account it should check and
+the URL for the Trunk instance to use, and the admin username and
+password on that trunk instance.
+
+This is what I do:
+
+```
+./bots.py trunk@botsin.space https://communitywiki.org/trunk trunk '*secret*'
+```
+
+Do this from a cronjob once an hour or so, and it should work:
+
+1. it checks for new notifications
+2. if they look like Trunk requests, they're added to the queue
