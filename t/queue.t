@@ -23,7 +23,7 @@ require './trunk.pl';
 
 # create empty queue
 $path = Mojo::File->new('queue');
-$path->spurt('[]');
+unlink($path) if -e $path;
 
 my $t = Test::Mojo->new;
 
@@ -71,6 +71,7 @@ $t->post_ok('/api/v1/queue' => form => {
   name => 'BSD'})
     ->status_is(200);
 
+ok(-e $path, "queue exists");
 my $data = decode_json $path->slurp();
 is(@$data, 1, 'enqueued one item');
 is($data->[0]->{acct}, 'kensanata@octodon.social', 'acct saved');

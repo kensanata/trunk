@@ -723,7 +723,7 @@ post '/api/v1/queue' => sub {
   return error($c, "Missing name parameter") unless @$names;
 
   my $path = Mojo::File->new("$dir/queue");
-  my $queue;
+  my $queue = [];
   $queue = decode_json $path->slurp if -e $path;
 
   delete_from_queue($c, $queue, $acct);
