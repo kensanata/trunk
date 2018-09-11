@@ -313,6 +313,7 @@ prerequisites:
 
 ```
 pip3 install Mastodon.py
+pip3 install html2text
 pip3 install requests
 ```
 
