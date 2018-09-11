@@ -395,14 +395,17 @@ sub backup {
 sub add_account {
   my $path = shift;
   my $account = shift;
-  return unless -e $path;
+  return 0 unless -e $path;
   my %accounts = map { $_ => 1 } split(" ", $path->slurp);
   if (not $accounts{$account}) {
     backup($path);
     my $fh = $path->open(">>:encoding(UTF-8)") || die "Cannot write to $path: $!";
     print $fh "$account\n";
     close($fh);
+    return 1;
   }
+  # already exists
+  return 2;
 }
 
 post '/do/add' => sub {
@@ -429,12 +432,19 @@ post '/do/add' => sub {
       && $c->param('message') =~ /Please add me to ([^.]+)\./) {
     push(@lists, split(/,\s+/, $1));
   }
-  local $" = ", ";
-  $log->info("$user added $account to @lists");
+  my @good;
+  my @bad;
   for my $name (@lists) {
-    add_account(Mojo::File->new("$dir/$name.txt"), $account);
+    if (add_account(Mojo::File->new("$dir/$name.txt"), $account)) {
+      push(@good, $name);
+    } else {
+      push(@bad, $name);
+    }
   }
-  $c->render(template => 'do_add', account => $account, lists => \@lists);
+  local $" = ", ";
+  $log->info("$user added $account to @good") if @good;
+  $log->warn("$user tried to add $account to @bad but failed") if @bad;
+  $c->render(template => 'do_add', account => $account, good => \@good, bad => \@bad);
 } => 'do_add';
 
 
@@ -931,9 +941,18 @@ itself (such as <em>kensanata@gmail.com</em>).</p>
 % title 'Add an account';
 <h1>Add an account</h1>
 
+% if (@$good) {
 <p>The account <%= $account %> was added to the following lists:
-%= join(", ", @$lists);
+%= join(", ", @$good);
 </p>
+% }
+
+% if (@$bad) {
+<p>The account <%= $account %> was <strong>not added</strong> to the following
+lists because they don't exist:
+%= join(", ", @$bad);
+</p>
+% }
 
 <p>
 %= link_to 'Add another account' => 'add'
