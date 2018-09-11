@@ -20,6 +20,7 @@ Mastodon.
 As *Trunk* and the number of requests is growing, we kindly
 ask you to mention just *one* of us. Thank you! 😅
 
+- [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
 - [@aminb@pleroma.site](https://pleroma.site/users/aminb)
 - [@Thepunkgeek@chaos.social](https://chaos.social/@Thepunkgeek)
 - [@eloisa@masto.pt](https://masto.pt/@eloisa)
