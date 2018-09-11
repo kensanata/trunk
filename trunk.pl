@@ -743,6 +743,9 @@ del '/api/v1/queue' => sub {
 
 get '/queue' => sub {
   my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'queue'));
+  }
   my $path = Mojo::File->new("$dir/queue");
   my $queue = decode_json $path->slurp;
   $c->render(template => 'queue', queue => $queue);
@@ -751,7 +754,7 @@ get '/queue' => sub {
 get '/queue/delete' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
-    return $c->redirect_to($c->url_for('login')->query(action => 'queue_delete'));
+    return $c->redirect_to($c->url_for('login')->query(action => 'queue'));
   }
   my $acct = $c->param('acct') || return error($c, "Missing acct parameter");
   my $path = Mojo::File->new("$dir/queue");
@@ -920,6 +923,7 @@ logged, just in case.</p>
 <li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Describe a list' => 'describe' %></li>
+<li><%= link_to 'Check the queue' => 'queue' %></li>
 <li><%= link_to 'Check the log' => 'log' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
@@ -1209,6 +1213,8 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 % title 'Queue';
 <h1>Queue</h1>
 
+% if (@$queue) {
+
 <p>The current queue of additions:</p>
 
 % for my $item (@$queue) {
@@ -1227,16 +1233,31 @@ to
 % };
 </p>
 %= submit_button
-<p>Delete from queue.</p>
+<p>
+<%= link_to url_for('queue_delete')->query(acct => $item->{acct}) => begin %>Delete from queue<% end %>
+</p>
 % end
 
 % }
 
+% } else {
+
+<p>The queue is empty. 😅</p>
+
+<p>
+%= link_to 'Back to the admin section' => 'admin'
+</p>
+
+% }
 
 @@ queue_delete.html.ep
 % title 'Queue';
 <h1>Queue</h1>
 <p>The account <%= $acct %> was deleted from the queue.</p>
+
+<p>
+%= link_to 'Back to the queue' => 'queue'
+</p>
 
 
 @@ login.html.ep
