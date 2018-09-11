@@ -686,14 +686,16 @@ get '/api/v1/queue' => sub {
 };
 
 sub delete_from_queue {
+  my $c = shift;
   my $queue = shift;
   my $acct = shift;
   my $i = 0;
   my $change = 0;
+  my $user = $c->current_user->{username};
   while ($i < @$queue) {
     if ($queue->[$i]->{acct} eq $acct) {
       splice(@$queue, $i, 1);
-      $log->info("replaced $acct in queue");
+      $log->info("$user removed $acct from queue");
       $change = 1;
     } else {
       $i++;
@@ -717,9 +719,10 @@ post '/api/v1/queue' => sub {
   my $queue;
   $queue = decode_json $path->slurp if -e $path;
 
-  delete_from_queue($queue, $acct);
+  delete_from_queue($c, $queue, $acct);
 
-  $log->info("enqueued $acct for @$names");
+  my $user = $c->current_user->{username};
+  $log->info("$user enqueued $acct for @$names");
   push(@$queue, {acct => $acct, names => $names});
   $path->spurt(encode_json $queue);
   $c->render(text => 'OK');
@@ -730,10 +733,11 @@ del '/api/v1/queue' => sub {
   return error($c, "Must be authenticated") unless $c->is_user_authenticated();
   my $acct = $c->param('acct');
   return error($c, "Missing acct parameter") unless $acct;
-  $log->info("dequeued $acct");
+  my $user = $c->current_user->{username};
+  $log->info("$user dequeued $acct");
   my $path = Mojo::File->new("$dir/queue");
   my $queue = decode_json $path->slurp;
-  if (delete_from_queue($queue, $acct)) {
+  if (delete_from_queue($c, $queue, $acct)) {
     $path->spurt(encode_json $queue);
     $c->render(text => 'OK');
   } else {
@@ -759,7 +763,7 @@ get '/queue/delete' => sub {
   my $acct = $c->param('acct') || return error($c, "Missing acct parameter");
   my $path = Mojo::File->new("$dir/queue");
   my $queue = decode_json $path->slurp;
-  if (delete_from_queue($queue, $acct)) {
+  if (delete_from_queue($c, $queue, $acct)) {
     $path->spurt(encode_json $queue);
     $c->render(template => 'queue_delete', acct => $acct);
   } else {
