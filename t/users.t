@@ -23,7 +23,7 @@ my $t = Test::Mojo->new();
 
 $t->get_ok('/')
     ->status_is(200)
-    ->text_is('title' => 'Trunk for Mastodon') # template
-    ->text_is('h1' => 'Trunk for Mastodon');   # index.md
+    ->text_is('title' => 'Trunk for the Fediverse') # template
+    ->text_is('h1' => 'Trunk');   # index.md
 
 done_testing();

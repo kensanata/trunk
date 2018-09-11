@@ -20,6 +20,7 @@ use Mastodon::Client;
 use MCE::Loop chunk_size => 1;
 use Mojo::Util qw(url_escape);
 use Mojo::Log;
+use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
 
@@ -308,19 +309,20 @@ get 'do/request' => sub {
 plugin 'authentication', {
     autoload_user => 1,
     load_user => sub {
-        my ($self, $username) = @_;
-        return {
-	  'username' => $username,
-	} if app->config('users')->{$username};
-        return undef;
+      my ($self, $username) = @_;
+      return {
+	'username' => $username,
+      } if app->config('users')->{$username};
+      return undef;
     },
     validate_user => sub {
-        my ($self, $username, $password) = @_;
-	if (app->config('users')->{$username}
-	    && $password eq app->config('users')->{$username}) {
-	  return $username;
-	}
-        return undef;
+      my ($self, $username, $password) = @_;
+      return undef unless $username and $password;
+      if (app->config('users')->{$username}
+	  && $password eq app->config('users')->{$username}) {
+	return $username;
+      }
+      return undef;
     },
 };
 
@@ -400,14 +402,17 @@ sub backup {
 sub add_account {
   my $path = shift;
   my $account = shift;
-  return unless -e $path;
+  return 0 unless -e $path;
   my %accounts = map { $_ => 1 } split(" ", $path->slurp);
   if (not $accounts{$account}) {
     backup($path);
     my $fh = $path->open(">>:encoding(UTF-8)") || die "Cannot write to $path: $!";
     print $fh "$account\n";
     close($fh);
+    return 1;
   }
+  # already exists
+  return 2;
 }
 
 post '/do/add' => sub {
@@ -434,12 +439,19 @@ post '/do/add' => sub {
       && $c->param('message') =~ /Please add me to ([^.]+)\./) {
     push(@lists, split(/,\s+/, $1));
   }
-  local $" = ", ";
-  $log->info("$user added $account to @lists");
+  my @good;
+  my @bad;
   for my $name (@lists) {
-    add_account(Mojo::File->new("$dir/$name.txt"), $account);
+    if (add_account(Mojo::File->new("$dir/$name.txt"), $account)) {
+      push(@good, $name);
+    } else {
+      push(@bad, $name);
+    }
   }
-  $c->render(template => 'do_add', account => $account, lists => \@lists);
+  local $" = ", ";
+  $log->info("$user added $account to @good") if @good;
+  $log->warn("$user tried to add $account to @bad but failed") if @bad;
+  $c->render(template => 'do_add', account => $account, good => \@good, bad => \@bad);
 } => 'do_add';
 
 
@@ -528,6 +540,8 @@ post '/do/search' => sub {
     $c->render(template => 'do_search_failed', account => $account);
   }
 } => 'do_search';
+
+
 
 
 get '/create' => sub {
@@ -668,6 +682,102 @@ get '/api/v1/list/:name' => sub {
   $c->render(json => \@accounts);
 };
 
+
+
+get '/api/v1/queue' => sub {
+  my $c = shift;
+  my $path = Mojo::File->new("$dir/queue");
+  return $c->render(json => []) unless -e $path;
+  my $queue = decode_json $path->slurp;
+  $c->render(json => $queue);
+};
+
+sub delete_from_queue {
+  my $c = shift;
+  my $queue = shift;
+  my $acct = shift;
+  my $i = 0;
+  my $change = 0;
+  my $user = $c->current_user->{username};
+  while ($i < @$queue) {
+    if ($queue->[$i]->{acct} eq $acct) {
+      splice(@$queue, $i, 1);
+      $log->info("$user removed $acct from queue");
+      $change = 1;
+    } else {
+      $i++;
+    }
+  }
+  return $change;
+}
+
+post '/api/v1/queue' => sub {
+  my $c = shift;
+  $c->authenticate($c->param('username'), $c->param('password'));
+  return error($c, "Must be authenticated") unless $c->is_user_authenticated();
+
+  my $acct = $c->param('acct');
+  return error($c, "Missing acct parameter") unless $acct;
+
+  my $names = $c->every_param('name');
+  return error($c, "Missing name parameter") unless @$names;
+
+  my $path = Mojo::File->new("$dir/queue");
+  my $queue;
+  $queue = decode_json $path->slurp if -e $path;
+
+  delete_from_queue($c, $queue, $acct);
+
+  my $user = $c->current_user->{username};
+  $log->info("$user enqueued $acct for @$names");
+  push(@$queue, {acct => $acct, names => $names});
+  $path->spurt(encode_json $queue);
+  $c->render(text => 'OK');
+};
+
+del '/api/v1/queue' => sub {
+  my $c = shift;
+  return error($c, "Must be authenticated") unless $c->is_user_authenticated();
+  my $acct = $c->param('acct');
+  return error($c, "Missing acct parameter") unless $acct;
+  my $user = $c->current_user->{username};
+  $log->info("$user dequeued $acct");
+  my $path = Mojo::File->new("$dir/queue");
+  my $queue = decode_json $path->slurp;
+  if (delete_from_queue($c, $queue, $acct)) {
+    $path->spurt(encode_json $queue);
+    $c->render(text => 'OK');
+  } else {
+    $c->render(text => "$acct not found", status => '404');
+  }
+};
+
+get '/queue' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'queue'));
+  }
+  my $path = Mojo::File->new("$dir/queue");
+  my $queue = decode_json $path->slurp;
+  $c->render(template => 'queue', queue => $queue);
+};
+
+get '/queue/delete' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'queue'));
+  }
+  my $acct = $c->param('acct') || return error($c, "Missing acct parameter");
+  my $path = Mojo::File->new("$dir/queue");
+  my $queue = decode_json $path->slurp;
+  if (delete_from_queue($c, $queue, $acct)) {
+    $path->spurt(encode_json $queue);
+    $c->render(template => 'queue_delete', acct => $acct);
+  } else {
+    error($c, "$acct not found in the queue");
+  }
+} => 'queue_delete';
+
 app->defaults(layout => 'default');
 app->start;
 
@@ -790,9 +900,9 @@ new statuses, they will appear here."</blockquote>
 %= text_field 'account'
 
 <p>
-% join("\n", map {
+% for (@$lists) {
 <label><%= check_box $_ %><%= $_ %></label>
-% } (@$lists));
+% };
 </p>
 
 %= submit_button 'Add Me', class => 'button'
@@ -824,6 +934,7 @@ logged, just in case.</p>
 <li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Describe a list' => 'describe' %></li>
+<li><%= link_to 'Check the queue' => 'queue' %></li>
 <li><%= link_to 'Check the log' => 'log' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
@@ -876,9 +987,9 @@ itself (such as <em>kensanata@gmail.com</em>).</p>
 </p>
 
 <p>Lists:
-% join("\n", map {
+% for (@$lists) {
 <label><%= check_box $_ %><%= $_ %></label>
-% } (@$lists));
+% };
 </p>
 
 %= submit_button
@@ -889,9 +1000,18 @@ itself (such as <em>kensanata@gmail.com</em>).</p>
 % title 'Add an account';
 <h1>Add an account</h1>
 
+% if (@$good) {
 <p>The account <%= $account %> was added to the following lists:
-%= join(", ", @$lists);
+%= join(", ", @$good);
 </p>
+% }
+
+% if (@$bad) {
+<p>The account <%= $account %> was <strong>not added</strong> to the following
+lists because they don't exist:
+%= join(", ", @$bad);
+</p>
+% }
 
 <p>
 %= link_to 'Add another account' => 'add'
@@ -1099,6 +1219,57 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 %= submit_button
 </p>
 % end
+
+
+@@ queue.html.ep
+% title 'Queue';
+<h1>Queue</h1>
+
+% if (@$queue) {
+
+<p>The current queue of additions:</p>
+
+% for my $item (@$queue) {
+
+%= form_for do_add => begin
+%= hidden_field 'account' => $item->{acct}
+% my ($username, $instance) = split(/@/, $item->{acct});
+<p>
+Add
+<a href="https://<%= $instance %>/users/<%= $username %>">
+%= $item->{acct}
+</a>
+to
+% for (@{$item->{names}}) {
+<label><%= check_box $_ => 1, checked => undef %><%= $_ %></label>
+% };
+</p>
+%= submit_button
+<p>
+<%= link_to url_for('queue_delete')->query(acct => $item->{acct}) => begin %>Delete from queue<% end %>
+</p>
+% end
+
+% }
+
+% } else {
+
+<p>The queue is empty. 😅</p>
+
+<p>
+%= link_to 'Back to the admin section' => 'admin'
+</p>
+
+% }
+
+@@ queue_delete.html.ep
+% title 'Queue';
+<h1>Queue</h1>
+<p>The account <%= $acct %> was deleted from the queue.</p>
+
+<p>
+%= link_to 'Back to the queue' => 'queue'
+</p>
 
 
 @@ login.html.ep

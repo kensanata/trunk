@@ -67,7 +67,7 @@ $t->post_ok('/do/add' => form => { account => 'one',
 				   Test2 => 'on' })
     ->status_is(200)
     ->text_is('h1' => 'Add an account')
-    ->content_like(qr'The account one was added to the following lists:\s+Test');
+    ->content_like(qr'not added.*:\s+Test2's);
 
 is($path->slurp(), "one\n", 'no duplicates saved');
 ok(! -e $path2, "missing list was not created");
