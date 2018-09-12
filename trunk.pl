@@ -457,6 +457,11 @@ post '/do/add' => sub {
   local $" = ", ";
   $log->info("$user added $account to @good") if @good;
   $log->warn("$user tried to add $account to @bad but failed") if @bad;
+
+  if ($c->param('dequeue')) {
+    delete_from_queue($c, $account);
+  }
+
   $c->render(template => 'do_add', account => $account, good => \@good, bad => \@bad);
 } => 'do_add';
 
@@ -690,21 +695,27 @@ get '/api/v1/list/:name' => sub {
 
 
 
-get '/api/v1/queue' => sub {
-  my $c = shift;
+sub load_queue {
   my $path = Mojo::File->new("$dir/queue");
-  return $c->render(json => []) unless -e $path;
-  my $queue = decode_json $path->slurp;
-  $c->render(json => $queue);
-};
+  return decode_json $path->slurp if -e $path;
+  return [];
+}
+
+sub save_queue {
+  my $queue = shift;
+  my $path = Mojo::File->new("$dir/queue");
+  $path->spurt(encode_json $queue);
+}
 
 sub delete_from_queue {
   my $c = shift;
-  my $queue = shift;
   my $acct = shift;
+  my $user = $c->current_user->{username};
+
   my $i = 0;
   my $change = 0;
-  my $user = $c->current_user->{username};
+  my $queue = load_queue();
+
   while ($i < @$queue) {
     if ($queue->[$i]->{acct} eq $acct) {
       splice(@$queue, $i, 1);
@@ -714,30 +725,39 @@ sub delete_from_queue {
       $i++;
     }
   }
+
+  save_queue($queue);
   return $change;
 }
+
+sub add_to_queue {
+  my $c = shift;
+  my $acct = shift;
+  my $names = shift;
+  my $user = $c->current_user->{username};
+  my $queue = load_queue();
+  push(@$queue, {acct => $acct, names => $names});
+  save_queue($queue);
+  $log->info("$user enqueued $acct for @$names");
+}
+
+get '/api/v1/queue' => sub {
+  my $c = shift;
+  $c->authenticate($c->param('username'), $c->param('password'));
+  return error($c, "Must be authenticated") unless $c->is_user_authenticated();
+  $c->render(json => load_queue());
+};
 
 post '/api/v1/queue' => sub {
   my $c = shift;
   $c->authenticate($c->param('username'), $c->param('password'));
   return error($c, "Must be authenticated") unless $c->is_user_authenticated();
-
   my $acct = $c->param('acct');
   return error($c, "Missing acct parameter") unless $acct;
-
   my $names = $c->every_param('name');
   return error($c, "Missing name parameter") unless @$names;
-
-  my $path = Mojo::File->new("$dir/queue");
-  my $queue = [];
-  $queue = decode_json $path->slurp if -e $path;
-
-  delete_from_queue($c, $queue, $acct);
-
-  my $user = $c->current_user->{username};
-  $log->info("$user enqueued $acct for @$names");
-  push(@$queue, {acct => $acct, names => $names});
-  $path->spurt(encode_json $queue);
+  delete_from_queue($c, $acct);
+  add_to_queue($c, $acct, $names);
   $c->render(text => 'OK');
 };
 
@@ -746,12 +766,7 @@ del '/api/v1/queue' => sub {
   return error($c, "Must be authenticated") unless $c->is_user_authenticated();
   my $acct = $c->param('acct');
   return error($c, "Missing acct parameter") unless $acct;
-  my $user = $c->current_user->{username};
-  $log->info("$user dequeued $acct");
-  my $path = Mojo::File->new("$dir/queue");
-  my $queue = decode_json $path->slurp;
-  if (delete_from_queue($c, $queue, $acct)) {
-    $path->spurt(encode_json $queue);
+  if (delete_from_queue($c, $acct)) {
     $c->render(text => 'OK');
   } else {
     $c->render(text => "$acct not found", status => '404');
@@ -763,9 +778,7 @@ get '/queue' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'queue'));
   }
-  my $path = Mojo::File->new("$dir/queue");
-  my $queue = decode_json $path->slurp;
-  $c->render(template => 'queue', queue => $queue);
+  $c->render(template => 'queue', queue => load_queue());
 };
 
 get '/queue/delete' => sub {
@@ -774,10 +787,7 @@ get '/queue/delete' => sub {
     return $c->redirect_to($c->url_for('login')->query(action => 'queue'));
   }
   my $acct = $c->param('acct') || return error($c, "Missing acct parameter");
-  my $path = Mojo::File->new("$dir/queue");
-  my $queue = decode_json $path->slurp;
-  if (delete_from_queue($c, $queue, $acct)) {
-    $path->spurt(encode_json $queue);
+  if (delete_from_queue($c, $acct)) {
     $c->render(template => 'queue_delete', acct => $acct);
   } else {
     error($c, "$acct not found in the queue");

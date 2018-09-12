@@ -30,8 +30,18 @@ my $t = Test::Mojo->new;
 $t->app->config({users=>{alex=>'let me in'}});
 
 $t->get_ok('/api/v1/queue')
+    ->status_is(500)
+    ->text_like('p' => qr'Must be authenticated');
+
+$t->get_ok('/api/v1/queue' => form => {
+  username => 'alex',
+  password => 'let me in'})
     ->status_is(200)
     ->json_is('' => []);
+
+# a new unauthenticated session
+
+my $t = Test::Mojo->new;
 
 $t->post_ok('/api/v1/queue' => form => {})
     ->status_is(500)
