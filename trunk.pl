@@ -73,7 +73,7 @@ get '/' => sub {
   my $md = to_markdown('index.md');
   my @lists;
   my @empty_lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $size = -s $file;
     my $name = Mojo::File->new($file)->basename('.txt');
     if ($size) {
@@ -281,7 +281,7 @@ get '/request' => sub {
   $c->render();
   my $md = to_markdown('request.md');
   my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
     push(@lists, $name);
   }
@@ -386,7 +386,7 @@ get '/add' => sub {
     return $c->redirect_to($c->url_for('login')->query(action => 'add'));
   }
   my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
     push(@lists, $name);
   }
@@ -396,9 +396,11 @@ get '/add' => sub {
 
 sub backup {
   my $path = shift;
+  my @backups = <"$path".~*~>;
   my $i = 1;
-  while (-e "$path.~$i~") {
-    $i++;
+  for (@backups) {
+    my ($n) = /\.~(\d+)~$/;
+    $i = $n + 1 if $n > $i;
   }
   $path->copy_to("$path.~$i~");
 }
@@ -497,7 +499,7 @@ any '/do/remove' => sub {
   $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
   $log->info("$user removed $account");
   my @lists;
-  for my $file (<$dir/*.txt>) {
+  for my $file (<"$dir"/*.txt>) {
     next unless -s $file;
     my $path = Mojo::File->new($file);
     my $name = $path->basename('.txt');
@@ -530,7 +532,7 @@ post '/do/search' => sub {
   $account =~ s/\s+$//; # trim trailing whitespace
   return error($c, "Please provide an account.") unless $account;
   my %accounts;
-  for my $file (<$dir/*.txt>) {
+  for my $file (<"$dir"/*.txt>) {
     next unless -s $file;
     my $path = Mojo::File->new($file);
     my $name = $path->basename('.txt');
@@ -586,7 +588,7 @@ get '/rename' => sub {
     return $c->redirect_to($c->url_for('login')->query(action => 'rename'));
   }
   my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
     push(@lists, $name);
   }
@@ -629,7 +631,7 @@ get '/describe' => sub {
     return $c->redirect_to($c->url_for('login')->query(action => 'describe'));
   }
   my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
     push(@lists, $name);
   }
@@ -671,7 +673,7 @@ post '/do/describe' => sub {
 get '/api/v1/list' => sub {
   my $c = shift;
   my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <$dir/*.txt>) {
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
     push(@lists, $name);
   }
