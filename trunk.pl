@@ -37,9 +37,15 @@ plugin 'Config' => {
   }
 };
 
-# Use the config to set some global variables.
+# Use the config to set a global variable...
 my $dir = app->config('dir');
+
+# This log is for what the admins do
 my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'debug');
+
+# This log is to find bugs...
+app->log->level('debug');
+app->log->path("$dir/trunk.log");
 
 sub to_markdown {
   my $file = shift;
@@ -52,6 +58,9 @@ sub to_markdown {
 sub error {
   my $c = shift;
   my $msg = shift;
+  my $account = $c->cookie('account');
+  my $logging = $c->cookie('logging');
+  app->log->error("$account: $msg") if $logging;
   $c->render(template => 'error', msg => $msg, status => '500');
   return 0;
 }
@@ -64,8 +73,14 @@ get '/' => sub {
     my $action = $c->cookie('action');
     my $account = $c->cookie('account');
     my $name = $c->cookie('name');
+    my $logging = $c->cookie('logging');
     if ($action) {
-      my $url = $c->url_for("do_$action")->query(code => $code, account => $account, name => $name);
+      my $url = $c->url_for("do_$action")->query(code => $code, account => $account,
+						 name => $name, logging => $logging);
+      my $copy = $url;
+      $copy =~ s/code=[a-zA-Z0-9]+/code=XXX/;
+      app->log->debug("$account is authorized for the '$action' action using the $name list, "
+		  . "redirecting to $copy") if $logging;
       return $c->redirect_to($url);
     } else {
       return error($c, "We got back an authorization code "
@@ -124,19 +139,28 @@ get '/auth' => sub {
   my $account = $c->param('account');
   my $action = $c->param('action');
   my $name = $c->param('name');
+  my $logging = $c->param('logging');
+  app->log->debug("$account wants to authorize the '$action' action for the $name list")
+      if $logging;
   $c->cookie(account => $account, {expires => time + 60});
   $c->cookie(action => $action, {expires => time + 60});
   $c->cookie(name => $name, {expires => time + 60});
-  my $client = client($c, $account);
+  $c->cookie(logging => $logging, {expires => time + 60});
+  my $client = client($c, $account, $logging);
   return unless $client;
   # workaround for Mastodon::Client 0.015
   my $instance = (split('@', $account, 2))[1];
+  my $url = $client->authorization_url(instance => $instance);
+  $url =~ s/client_id=[a-zA-Z0-9]+/client_id=XXX/;
+  app->log->debug("$account is being redirected to $url")
+      if $logging;
   $c->redirect_to($client->authorization_url(instance => $instance));
 } => 'auth';
 
 sub client {
   my $c = shift;
   my $account = shift;
+  my $logging = shift;
   my ($who, $where) = split(/@/, $account);
   if (not $where) {
     return error($c, "Account must look like an email address, "
@@ -164,12 +188,22 @@ sub client {
 
   my $client;
   if ($instance and $instance eq $where) {
+    app->log->debug("$account found client credentials for $instance: "
+		. "id " . ($client_id ? "yes" : "no") . ", "
+		. "secret " . ($client_secret ? "yes" : "no"))
+	if $logging;
     $attributes{client_id}     = $client_id;
     $attributes{client_secret} = $client_secret;
     $client = Mastodon::Client->new(%attributes);
   } else {
+    app->log->debug("$account found no client credentials for $instance")
+	if $logging;
     $client = Mastodon::Client->new(%attributes);
     $client->register();
+    app->log->debug("$account registered client and got new credentials for $instance: "
+		. "id " . ($client_id ? "yes" : "no") . ", "
+		. "secret " . ($client_secret ? "yes" : "no"))
+	if $logging;
     open(my $fh, ">>", $file) || die "Cannot write $file: $!";
     $instance = $client->instance->uri;
     $instance =~ s!^https://!!;
@@ -178,6 +212,8 @@ sub client {
 		   $client->client_secret) . "\n";
     close($fh) || die "Cannot close $file: $!";
   }
+  app->log->debug("$account has a client: " . ($client ? "yes" : "no"))
+      if $logging;
   return $client;
 }
 
@@ -208,10 +244,14 @@ get 'do/follow' => sub {
   my $name = $c->param('name')
       || return error($c, "We did not find the list name in the cookie.");
 
-  my $client = client($c, $account) || return;
+  my $logging = $c->param('logging'); # optional
+
+  my $client = client($c, $account, $logging) || return;
 
   # We don't save the access_token returned by this call!
   eval {
+    app->log->debug("$account authorizing using a code: " . ($code ? "yes" : "no"))
+	if $logging;
     $client->authorize(access_code => $code);
   };
   if ($@) {
@@ -231,11 +271,15 @@ get 'do/follow' => sub {
   my @accts = split(" ", $path->slurp);
 
   # work in parallel and gather results
+  app->log->debug("$account begins to follow " . scalar(@accts) . " accounts from list $name")
+      if $logging;
   my @results = mce_loop {
     MCE->gather(follow($client, $list_id, $_));
   } @accts;
 
   # done
+  app->log->debug("$account followed " . scalar(@results) . " accounts from list $name")
+      if $logging;
   $c->render(template => 'follow_done',
 	     name => $name,
 	     results => \@results);
@@ -363,7 +407,6 @@ get '/log' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'log'));
   }
-  # we can't use $log->history because that might be empty after a restart
   my $path = Mojo::File->new($log->path);
   my @lines = split(/\n/, decode_utf8($path->slurp));
   my $n = @lines < 30 ? @lines : 30;
@@ -376,7 +419,6 @@ get '/log/all' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'log'));
   }
-  # we can't use $log->history because that might be empty after a restart
   my $path = Mojo::File->new($log->path);
   $c->render(text => decode_utf8($path->slurp), format => 'txt');
 } => 'log_all';
@@ -483,14 +525,14 @@ sub bot_reply {
 
   my $bot = app->config('bot');
   if (not $bot) {
-    $log->debug('No bot configured');
+    app->log->debug('No bot configured');
     return;
   }
 
   my $client_path = Mojo::File->new("$dir/$bot.client");
   my $user_path = Mojo::File->new("$dir/$bot.user");
   if (not -e $client_path or not -e $user_path) {
-    $log->debug("$bot.client and $bot.user files must exist");
+    app->log->debug("$bot.client and $bot.user files must exist");
     return;
   }
 
@@ -683,8 +725,15 @@ post '/do/rename' => sub {
   my $new_path = Mojo::File->new("$dir/$new_name.txt");
   return error($c, "This list already exists.") if -e $new_path;
 
-  $log->info("$user renamed $old_name to $new_name");
-  $new_path = $old_path->move_to($new_path);
+  eval {
+    $new_path = $old_path->move_to($new_path);
+    $log->info("$user renamed $old_name to $new_name");
+  };
+  if ($@) {
+    $log->info("$user tried to rename $old_name to $new_name: $@");
+    return error($c, "Renaming this list failed. Most likely because the new name contained a slash"
+		 . " or some other illegal character in filenames");
+  }
 
   $c->render(template => 'do_rename', old_name => $old_name, new_name => $new_name);
 } => 'do_rename';
@@ -918,6 +967,15 @@ link_to grab => {name => $name} => begin%><%= $name %><%= end %>.</p>
 
 <p><%= link_to url_for('auth')->query(account => $account, action => 'follow',
 name => $name) => (class => 'button') => begin %>Let's do this<% end %></p>
+
+<p>If you'd like to help us find the
+<a href="https://alexschroeder.ch/software/Client_authentication_failed">authorisation problems</a>
+we've been having, please use the following link instead:</p>
+
+<p><%= link_to url_for('auth')->query(account => $account, action => 'follow',
+logging => 'ok', name => $name) => (class => 'button') => begin %>Let's log
+this<% end %></p>
+
 
 
 @@ grab.html.ep
