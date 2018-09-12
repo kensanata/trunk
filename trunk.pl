@@ -24,12 +24,20 @@ use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
 
-my $dir = "/home/alex/src/trunk";            # FIXME
-my $uri = "https://communitywiki.org/trunk"; # FIXME
+# Create a file called trunk.conf in the same directory as trunk.pl and override
+# these options. For example, use this for testing:
+# {users=>{alex=>'Holz'}, uri => 'http://localhost:3000/', }
+plugin 'Config' => {
+  default => {
+    users => {},
+    dir => ".",
+    uri => "https://communitywiki.org/trunk",
+  }
+};
 
+# Use the config to set some global variables.
+my $dir = app->config('dir');
 my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'debug');
-
-plugin 'Config' => {default => {users => {}}};
 
 sub to_markdown {
   my $file = shift;
@@ -48,10 +56,6 @@ sub error {
 
 get '/' => sub {
   my $c = shift;
-  # if we're testing locally
-  if ($c->url_for->to_abs =~ /localhost:3000/) {
-    $uri = 'http://localhost:3000/';
-  }
   # if we're here because of the redirect uri
   my $code = $c->param('code');
   if ($code) {
@@ -90,7 +94,7 @@ get '/grab/:name' => sub {
   my $description = to_markdown("$name.md");
   my $md = to_markdown('grab.md');
   $md =~ s/\$name_encoded/url_escape($name)/ge;
-  $md =~ s/\$uri/$uri/ge;
+  $md =~ s/\$uri/app->config('uri')/ge;
   $md =~ s/\$name/$name/g;
   $c->render(template => 'grab', name => $name, accounts => \@accounts,
 	     description => $description, md => $md);
@@ -151,10 +155,10 @@ sub client {
   # set up client attributes
   my %attributes = (
     instance	    => $where,
-    redirect_uri    => $uri,
+    redirect_uri    => app->config('uri'),
     scopes          => ['follow', 'read', 'write'],
     name	    => 'Trunk',
-    website	    => $uri, );
+    website	    => app->config('uri'), );
 
   my $client;
   if ($instance and $instance eq $where) {
