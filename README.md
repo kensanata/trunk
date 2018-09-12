@@ -14,10 +14,17 @@ Issues, feature requests and all that: use the
 - [API](#api)
     - [Getting the lists](#getting-the-lists)
     - [Getting the accounts in a list](#getting-the-accounts-in-a-list)
+    - [Get the queue](#get-the-queue)
+    - [Add to the queue](#add-to-the-queue)
+    - [Remove from the queue](#remove-from-the-queue)
 - [Installation](#installation)
-- [Configuration](#configuration)
-- [Deployment](#deployment)
-- [Bugs](#bugs)
+    - [Configuration](#configuration)
+    - [Deployment](#deployment)
+    - [Bugs](#bugs)
+- [Translation](#translation)
+- [Queue Bot](#queue-bot)
+    - [First, create a bot account and set everything up](#first-create-a-bot-account-and-set-everything-up)
+    - [Finally, invoke it](#finally-invoke-it)
 
 <!-- markdown-toc end -->
 
@@ -141,7 +148,7 @@ morbo trunk.pl
 This allows you to make changes to `trunk.pl` and check the result on
 `localhost:3000` after every save.
 
-## Configuration
+### Configuration
 
 You need a config file in the same directory, called `trunk.conf`.
 This is where you define your admins, if any.
@@ -160,7 +167,7 @@ One admin:
 }
 ```
 
-## Deployment
+### Deployment
 
 
 Once you are ready to deploy there are various options. The simplest
@@ -279,7 +286,7 @@ app->start;
 Now start this file instead of `trunk.pl` using `hypnotoad` and it
 should still work.
 
-## Bugs
+### Bugs
 
 Version 0.015 of `Mastodon::Client` has a bug which you need to fix:
 
@@ -304,7 +311,35 @@ diff -u /home/alex/perl5/lib/perl5/Mastodon/Client.pm\~ /home/alex/perl5/lib/per
 Diff finished.  Wed Aug 15 09:48:54 2018
 ```
 
-# Queue Bot
+## Translation
+
+If you want to translate the application, there are two things you
+need to do.
+
+First, you want to translate the Markdown files. These are the files
+that can be edited via the admin interface via *Describe a list* →
+*Special descriptions*.
+
+* `help.md` is the help page
+* `index.md` is shown on the front page
+* `request.md` is the request to join linked from the front page
+* `grab.md` is the intro for the grab page, where the list members are listed
+
+Second, you want to translate all the templates that are included at
+the end of `trunk.pl` in the `__DATA__` section. In order to do that,
+run the following command:
+
+```sh
+perl trunk.pl inflate
+```
+
+This generates external copies of all the template files. Check the
+new `templates` folder. All the files ending in `.html.ep` can be
+translated and take precedence over the templates stored inside
+`trunk.pl`. This is how you can translate the templates and still
+install a new copy of `trunk.pl`.
+
+## Queue Bot
 
 The Trunk interface has a queue which can be fed using the API. One
 way of doing that involves a bot. This bot is written in Python.
@@ -317,7 +352,7 @@ pip3 install html2text
 pip3 install requests
 ```
 
-## First, create a bot account and set everything up
+### First, create a bot account and set everything up
 
 Mastodon provides a UI for all of this. Just go to your settings and
 under the "developer" menu there is a place to create a new app and
@@ -356,7 +391,7 @@ Example content:
 7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456
 ```
 
-## Finally, invoke it
+### Finally, invoke it
 
 You need to invoke the bot with the user account it should check and
 the URL for the Trunk instance to use, and the admin username and
