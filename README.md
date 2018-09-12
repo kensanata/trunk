@@ -21,10 +21,12 @@ Issues, feature requests and all that: use the
     - [Configuration](#configuration)
     - [Deployment](#deployment)
     - [Bugs](#bugs)
+- [Troubleshooting](#troubleshooting)
 - [Translation](#translation)
 - [Queue Bot](#queue-bot)
     - [First, create a bot account and set everything up](#first-create-a-bot-account-and-set-everything-up)
     - [Finally, invoke it](#finally-invoke-it)
+- [Test](#test)
 
 <!-- markdown-toc end -->
 
@@ -311,6 +313,14 @@ diff -u /home/alex/perl5/lib/perl5/Mastodon/Client.pm\~ /home/alex/perl5/lib/per
 Diff finished.  Wed Aug 15 09:48:54 2018
 ```
 
+## Troubleshooting
+
+If you're seeing the barfing Tyrannosaurus Rex or the "raptor not
+found" message, that means that Trunk has run into an error. Your best
+option is to run the server using `morbo` and repeat whatever you did.
+When running with `morbo`, you should get better error output in your
+browser and a backtrace in the `morbo` output.
+
 ## Translation
 
 If you want to translate the application, there are two things you
@@ -464,4 +474,3 @@ You should see the following:
 You should also see that the bot replied to your original request:
 
 > @kensanata Done! Added you to Test. 🐘
-
