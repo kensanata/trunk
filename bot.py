@@ -50,12 +50,13 @@ def login(account, scopes = ["read", "write"]):
 
     return mastodon
 
-def add_to_queue(account, names, url, username, password, debug):
+def add_to_queue(account, id, names, url, username, password, debug):
     payload = {
         "username": username,
         "password": password,
         "acct": account,
         "name": names,
+        "id": id,
     }
     r = requests.post(url + "/api/v1/queue", payload)
     if debug:
@@ -86,11 +87,12 @@ def main(account, url, username, password, debug=False):
     for mention in mentions:
         m = re.search("Please add me to ([^.]+)", mention["status"]["content"])
         if m:
+            id = mention["status"]["id"]
             account = mention["status"]["account"]["acct"]
             names = m.group(1).split(", ")
             if debug:
                 print(account + " wants to be added to " + ", ".join(names))
-            if add_to_queue(account, names, url, username, password, debug):
+            if add_to_queue(account, id, names, url, username, password, debug):
                 mastodon.notifications_dismiss(mention["id"])
                 if debug:
                     print("Dismissing notification")

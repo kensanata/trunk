@@ -407,3 +407,61 @@ Do this from a cronjob once an hour or so, and it should work:
 
 1. it checks for new notifications
 2. if they look like Trunk requests, they're added to the queue
+
+## Test
+
+The unit tests are simple. The following runs all the tests in the `t`
+directory.
+
+```
+prove t
+```
+
+Create the bot on an instance and save the credentials in the
+`*.client` and `*.user` files as instructed above.
+
+Create a list:
+
+```
+touch Test.txt
+```
+
+Start the server locally:
+
+```
+morbo trunk.pl
+```
+
+Use your favorite account (I'm going to use
+*kensanata@octodon.social*) and send a message to the bot (I'm going
+to use *trunk@botsin.space*):
+
+> @trunk Please add me to Test.
+
+If you're logged in with your bot account, you should get a
+notification.
+
+Run the bot, using your bot account and a username and password from
+your trunk.conf:
+
+```
+python3 bot.py trunk@botsin.space http://localhost:3000 alex Holz
+```
+
+Check that the bot dismissed the notification by reloading the web UI
+of your bot account.
+
+Check that the bot added your request to the queue by visiting
+`http://localhost:3000/queue`
+
+In the queue, click the OK button.
+
+You should see the following:
+
+> The account kensanata@octodon.social was added to the following
+> lists: Test
+
+You should also see that the bot replied to your original request:
+
+> @kensanata Done! Added you to Test. 🐘
+

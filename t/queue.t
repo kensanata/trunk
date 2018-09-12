@@ -58,7 +58,7 @@ $t->post_ok('/api/v1/queue' => form => {
   password => 'let me in',
   acct => 'kensanata@octodon.social'})
     ->status_is(500)
-    ->text_like('p' => qr'Missing name parameter');
+    ->text_like('p' => qr'Missing id parameter');
 
 $t->post_ok('/api/v1/queue' => form => {
   username => 'alex',
@@ -70,7 +70,8 @@ $t->post_ok('/api/v1/queue' => form => {
 $t->post_ok('/api/v1/queue' => form => {
   username => 'alex',
   password => 'let me in',
-  acct => 'kensanata@octodon.social'})
+  acct => 'kensanata@octodon.social',
+  id => '123'})
     ->status_is(500)
     ->text_like('p' => qr'Missing name parameter');
 
@@ -78,6 +79,7 @@ $t->post_ok('/api/v1/queue' => form => {
   username => 'alex',
   password => 'let me in',
   acct => 'kensanata@octodon.social',
+  id => '123',
   name => 'BSD'})
     ->status_is(200);
 
@@ -111,6 +113,7 @@ $t->post_ok('/api/v1/queue' => form => {
   username => 'alex',
   password => 'let me in',
   acct => 'kensanata@octodon.social',
+  id => '123',
   name => 'BSD'})
     ->status_is(200);
 

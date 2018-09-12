@@ -23,15 +23,17 @@ use Mojo::Log;
 use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
+use utf8;
 
 # Create a file called trunk.conf in the same directory as trunk.pl and override
 # these options. For example, use this for testing:
-# {users=>{alex=>'Holz'}, uri => 'http://localhost:3000/', }
+# {users=>{alex=>'Holz'}, uri => 'http://localhost:3000', }
 plugin 'Config' => {
   default => {
     users => {},
     dir => ".",
     uri => "https://communitywiki.org/trunk",
+    bot => 'trunk@botsin.space',
   }
 };
 
@@ -440,6 +442,8 @@ post '/do/add' => sub {
   my $hash = $c->req->body_params->to_hash;
   delete $hash->{account};
   delete $hash->{message};
+  delete $hash->{dequeue};
+  delete $hash->{id};
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
   if ($c->param('message')
       && $c->param('message') =~ /Please add me to ([^.]+)\./) {
@@ -459,11 +463,65 @@ post '/do/add' => sub {
   $log->warn("$user tried to add $account to @bad but failed") if @bad;
 
   if ($c->param('dequeue')) {
+    my $id = $c->param('id');
     delete_from_queue($c, $account);
+    bot_reply($c, $account, $id, \@good, \@bad);
   }
 
   $c->render(template => 'do_add', account => $account, good => \@good, bad => \@bad);
 } => 'do_add';
+
+
+sub bot_reply {
+  my $c = shift;
+  my $account = shift;
+  my $id = shift;
+  my $good = shift;
+  my $bad = shift;
+
+  my $bot = app->config('bot');
+  if (not $bot) {
+    $log->debug('No bot configured');
+    return;
+  }
+
+  my $client_path = Mojo::File->new("$dir/$bot.client");
+  my $user_path = Mojo::File->new("$dir/$bot.user");
+  if (not -e $client_path or not -e $user_path) {
+    $log->debug("$bot.client and $bot.user files must exist");
+    return;
+  }
+
+  my ($client_id, $client_secret) = split(' ', $client_path->slurp);
+  my ($access_token) = split(' ', $user_path->slurp);
+
+  my ($name, $instance) = split(/\@/, $bot);
+  my $client = Mastodon::Client->new(
+    instance        => $instance,
+    name            => $name,
+    client_id       => $client_id,
+    client_secret   => $client_secret,
+    access_token    => $access_token);
+
+  my $text = '@' . $account;
+  local $" = ", ";
+  $text .= " Done! Added you to @$good." if @$good;
+  $text .= " Sadly, these don't exist: @$bad." if @$bad;
+  $text .= " 🐘";
+
+  my $params = {
+    in_reply_to_id => $id,
+    visibility	   => 'direct',
+  };
+
+  eval {
+    $client->post_status($text, $params);
+    $log->debug("$bot sent a direct message: $text");
+  };
+  if ($@) {
+    $log->error("$bot was unable to reply: $@");
+  }
+}
 
 
 get '/remove' => sub {
@@ -733,10 +791,11 @@ sub delete_from_queue {
 sub add_to_queue {
   my $c = shift;
   my $acct = shift;
+  my $id = shift;
   my $names = shift;
   my $user = $c->current_user->{username};
   my $queue = load_queue();
-  push(@$queue, {acct => $acct, names => $names});
+  push(@$queue, {acct => $acct, id => $id, names => $names});
   save_queue($queue);
   $log->info("$user enqueued $acct for @$names");
 }
@@ -754,10 +813,12 @@ post '/api/v1/queue' => sub {
   return error($c, "Must be authenticated") unless $c->is_user_authenticated();
   my $acct = $c->param('acct');
   return error($c, "Missing acct parameter") unless $acct;
+  my $id = $c->param('id');
+  return error($c, "Missing id parameter") unless $id;
   my $names = $c->every_param('name');
   return error($c, "Missing name parameter") unless @$names;
   delete_from_queue($c, $acct);
-  add_to_queue($c, $acct, $names);
+  add_to_queue($c, $acct, $id, $names);
   $c->render(text => 'OK');
 };
 
@@ -1248,7 +1309,9 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 % for my $item (@$queue) {
 
 %= form_for do_add => begin
+%= hidden_field 'dequeue' => 1
 %= hidden_field 'account' => $item->{acct}
+%= hidden_field 'id' => $item->{id}
 % my ($username, $instance) = split(/@/, $item->{acct});
 <p>
 Add
