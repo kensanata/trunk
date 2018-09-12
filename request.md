@@ -14,3 +14,8 @@ guess? 🤔
 
 (Sadly, this only works for Mastodon as far as I know. Everybody else
 just post their toots like your parents did, by hand!)
+
+We're trying to help newbies find people to follow. If you have an
+NGO account, or some other account that is mostly boosting news and
+doesn't represent an actual, single person to talk to, we'll add you
+to the [Organisations, NGOs & Associations](https://communitywiki.org/trunk/grab/Organisations,%20NGOs%20&%20Associations) list.

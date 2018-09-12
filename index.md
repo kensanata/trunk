@@ -1,16 +1,22 @@
 # Trunk
 
-Trunk allows you to mass-follow a bunch of people in order to get
+Trunk allows you to mass-follow a bunch of *people* in order to get
 started with [Mastodon](https://joinmastodon.org/) or any other
 platform on the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 Mastodon is a free, open-source, decentralized microblogging network.
 
 If you click on one of the lists below, you'll see a page full of
-accounts. Click to see their timelines and follow them individually,
-or click the big button at the top to do follow them all. I hope this
-helps you find some people to follow. Please remember that we're all
+*people* that volunteered to be on that list. Yeah, *people*. Our
+goal is to connect newbies with *people*. The only exception we have
+is our [Organizations, NGOs & Associations](https://communitywiki.org/trunk/grab/Organisations,%20NGOs%20&%20Associations) list. All the other lists are about
+*people*. Click to see their timelines and follow them individually,
+or click the big button at the top to do follow them all. We hope this
+helps you find some new people to follow.
+
+Please remember that we're all
 human and interests change and nobody promised to either an expert on
-these topics or to be posting exclusively about these topics. 🙂
+these topics or to be posting exclusively about these topics. And of
+course, people change, or leave. 🙂
 
 If you want to be [added to a list](/trunk/request), or removed from a
 list, or if you'd like to see a new list, or if you have any other
@@ -20,11 +26,13 @@ Mastodon.
 As *Trunk* and the number of requests is growing, we kindly
 ask you to mention just *one* of us. Thank you! 😅
 
+- [@ChangelingRandy@mastodon.social](https://mastodon.social/@ChangelingRandy)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
 - [@aminb@pleroma.site](https://pleroma.site/users/aminb)
 - [@Thepunkgeek@chaos.social](https://chaos.social/@Thepunkgeek)
 - [@eloisa@masto.pt](https://masto.pt/@eloisa)
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
+- [@trunk@botsin.space](https://botsin.space/@trunk) (experimental!)
 
 Note that you cannot volunteer other people. People have to volunteer
 themselves. Please encourage them to contact one of the

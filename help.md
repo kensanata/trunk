@@ -7,11 +7,13 @@ This page is a about two kinds of help:
 
 ## Help! I'm getting an error!
 
-There are two kinds of errors we know about.
+These are the kinds of errors we know about.
 
 1. If you're trying to subscribe to a list, and it takes about half a minute before you're getting an error, you might have a partial success: the list got created and people were added to it but eventually it timed out. And instance was down, or the list is too big, we're not quite sure. You can try again, or simply add the remaining accounts manually, one by one. In this case, send an email to Alex (see link at the very bottom): which account didn't get added? Perhaps these accounts need to be removed from the list and that'll fix it for everybody. 😅
 
-2. If you're trying to subscribe to a list, and it takes no time at all to get an error, then it depends: the Trunk server might have gotten its registration wrong. Send a message to Alex (see link at the very bottom) and say which account you used. Perhaps the existing registration can be deleted and you can then try again. Sadly, there's also the possibility that your instance is simply not compatible and nobody knows what the problem is. 😓
+2. If you're trying to subscribe to a list, and it takes no time at all to get an error, and you didn't have to authorize the application, and the error happens on your instance ("Client authentication failed due to unknown client, no client authentication included, or unsupported authentication method") then the Trunk server might have gotten its registration wrong. In this case you can try sending a message to Alex (see link at the very bottom) and say which account you used. Perhaps the existing registration can be deleted and you can then try again. Sadly, there's also the possibility that your instance is simply not compatible and nobody knows what the problem is. 😓
+
+3. If you're trying to subscribe to a list, and it takes no time at all to get an error, and you didn't have to authorize the application, and the error is something along the lines of "Authorisation failed. Did you try to reload the page? This will not work since we're not saving the access token." then one thing you could try is remove all the previous authorizations you have to the application. Visit the website of your instance and go to *Settings* → *Authorized apps* and revoke all access for the Trunk application, then try again. You should be redirected to your instance at one point where you get to authorize the app again. If it still fails, it might be a temporary failure. Try again after waiting for a bit. If it isn't temporary, then I fear Alex can't do anything about it. You'll need to add accounts manually, one by one. 😓
 
 ## I'd like to help!
 
