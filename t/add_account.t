@@ -53,23 +53,27 @@ $t->get_ok('/login' => form => {
     ->element_exists('input[name=Test][type=checkbox]');
 
 $t->post_ok('/do/add' => form => { account => 'one', Test => 'on' })
+    ->status_is(500)
+    ->text_is('h1' => 'Error');
+
+$t->post_ok('/do/add' => form => { account => 'one@two', Test => 'on' })
     ->status_is(200)
     ->text_is('h1' => 'Add an account')
-    ->content_like(qr'The account one was added to the following lists:\s+Test');
+    ->content_like(qr'The account one@two was added to the following lists:\s+Test');
 
-is($path->slurp(), "one\n", 'account saved');
+is($path->slurp(), "one\@two\n", 'account saved');
 
 $path2 = Mojo::File->new('Test2.txt');
 unlink($path2) if -e $path2;
 
-$t->post_ok('/do/add' => form => { account => 'one',
+$t->post_ok('/do/add' => form => { account => 'one@two',
 				   Test => 'on',
 				   Test2 => 'on' })
     ->status_is(200)
     ->text_is('h1' => 'Add an account')
     ->content_like(qr'not added.*:\s+Test2's);
 
-is($path->slurp(), "one\n", 'no duplicates saved');
+is($path->slurp(), "one\@two\n", 'no duplicates saved');
 ok(! -e $path2, "missing list was not created");
 
 done_testing();

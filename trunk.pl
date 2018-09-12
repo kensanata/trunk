@@ -439,6 +439,8 @@ post '/do/add' => sub {
   $account =~ s/^@//;   # trim extra @ at the beginning
   $account =~ s!^https://([^/]+)/@([^/]+)$!$2\@$1!; # URL format
   return error($c, "Please provide an account.") unless $account;
+  return error($c, "'$account' doesn't look like a good account name")
+      unless $account =~ /^\S+\@\S+$/i;
   my $hash = $c->req->body_params->to_hash;
   delete $hash->{account};
   delete $hash->{message};
