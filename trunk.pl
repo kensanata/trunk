@@ -157,6 +157,25 @@ get '/auth' => sub {
   $c->redirect_to($client->authorization_url(instance => $instance));
 } => 'auth';
 
+sub load_credentials {
+  my $where = shift;
+  my $file = "$dir/credentials";
+  if (open(my $fh, "<", $file)) {
+    while (my $line = <$fh>) {
+      next unless $line;
+      my ($instance, $client_id, $client_secret) = split(" ", $line);
+      return ($instance, $client_id, $client_secret) if $instance eq $where;
+    }
+  }
+}
+
+sub save_credentials {
+  my $file = "$dir/credentials";
+  open(my $fh, ">>", $file) || die "Cannot append to $file: $!";
+  print $fh join(" ", @_) . "\n";
+  close($fh) || die "Cannot close $file: $!";
+}
+
 sub client {
   my $c = shift;
   my $account = shift;
@@ -165,17 +184,6 @@ sub client {
   if (not $where) {
     return error($c, "Account must look like an email address, "
 		 . 'e.g. kensanata@octodon.social');
-  }
-  my ($instance, $client_id, $client_secret);
-
-  # find the line in credentials matching our instance ("where")
-  my $file = "$dir/credentials";
-  if (open(my $fh, "<", $file)) {
-    while (my $line = <$fh>) {
-      next unless $line;
-      ($instance, $client_id, $client_secret) = split(" ", $line);
-      last if $instance eq $where;
-    }
   }
 
   # set up client attributes
@@ -186,8 +194,10 @@ sub client {
     name	    => 'Trunk',
     website	    => app->config('uri'), );
 
+  my ($instance, $client_id, $client_secret) = load_credentials($where);
+
   my $client;
-  if ($instance and $instance eq $where) {
+  if ($instance) {
     app->log->debug("$account found client credentials for $instance: "
 		. "id " . ($client_id ? "yes" : "no") . ", "
 		. "secret " . ($client_secret ? "yes" : "no"))
@@ -196,21 +206,19 @@ sub client {
     $attributes{client_secret} = $client_secret;
     $client = Mastodon::Client->new(%attributes);
   } else {
-    app->log->debug("$account found no client credentials for $instance")
+    app->log->debug("$account found no client credentials for $where")
 	if $logging;
     $client = Mastodon::Client->new(%attributes);
     $client->register();
+    $instance = $client->instance->uri;
+    $instance =~ s!^https://!!;
+    $client_id = $client->client_id;
+    $client_secret = $client->client_secret;
     app->log->debug("$account registered client and got new credentials for $instance: "
 		. "id " . ($client_id ? "yes" : "no") . ", "
 		. "secret " . ($client_secret ? "yes" : "no"))
 	if $logging;
-    open(my $fh, ">>", $file) || die "Cannot write $file: $!";
-    $instance = $client->instance->uri;
-    $instance =~ s!^https://!!;
-    print $fh join(" ", $instance,
-		   $client->client_id,
-		   $client->client_secret) . "\n";
-    close($fh) || die "Cannot close $file: $!";
+    save_credentials($instance, $client->client_id, $client->client_secret);
   }
   app->log->debug("$account has a client: " . ($client ? "yes" : "no"))
       if $logging;
@@ -797,6 +805,7 @@ get '/api/v1/list' => sub {
 get '/api/v1/list/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
+  $name =~ s/\+/ /g; # hack: fix broken clients
   my $path = Mojo::File->new("$dir/$name.txt");
   my @accounts = map { { acct => $_ } } sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
   $c->render(json => \@accounts);
