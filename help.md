@@ -15,6 +15,8 @@ These are the kinds of errors we know about.
 
 3. If you're trying to subscribe to a list, and it takes no time at all to get an error, and you didn't have to authorize the application, and the error is something along the lines of "Authorisation failed. Did you try to reload the page? This will not work since we're not saving the access token." then one thing you could try is remove all the previous authorizations you have to the application. Visit the website of your instance and go to *Settings* → *Authorized apps* and revoke all access for the Trunk application, then try again. You should be redirected to your instance at one point where you get to authorize the app again. If it still fails, it might be a temporary failure. Try again after waiting for a bit. If it isn't temporary, then I fear Alex can't do anything about it. You'll need to add accounts manually, one by one. 😓
 
+4. If you've authorized the application and then you get the error "We got back an authorization code but the cookie was lost. This looks like a bug." If you're preventing the cookie from being set in your browser, then that explains it, of course. There's also a time limit. The cookie is set to expire in 60s. Hopefully that's long enough.
+
 ## I'd like to help!
 
 There are two kinds of help we need right now:
