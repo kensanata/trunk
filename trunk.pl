@@ -961,7 +961,7 @@ $name} => begin%><%= $name %><%= end %>. If you prefer not to do that, no
 problem. Just go back to the list and go through the list manually.</p>
 
 %= form_for follow_confirm => begin
-%= text_field 'account'
+%= text_field 'account', required => undef
 %= hidden_field name => $name
 %= submit_button
 % end
@@ -1043,7 +1043,7 @@ new statuses, they will appear here."</blockquote>
 
 %= form_for do_request => begin
 %= label_for account => 'Account'
-%= text_field 'account'
+%= text_field 'account', required => undef
 
 <p>
 % for (@$lists) {
@@ -1175,7 +1175,7 @@ lists because they don't exist:
 
 %= form_for do_remove => begin
 %= label_for account => 'Account'
-%= text_field 'account'
+%= text_field 'account', required => undef
 %= submit_button
 % end
 
@@ -1215,7 +1215,7 @@ the lists.</p>
 
 %= form_for do_search => begin
 %= label_for account => 'Account'
-%= text_field 'account'
+%= text_field 'account', required => undef
 %= submit_button
 % end
 
@@ -1263,7 +1263,7 @@ or
 
 %= form_for do_create => begin
 %= label_for name => 'List'
-%= text_field 'name'
+%= text_field 'name', required => undef
 %= submit_button
 % end
 
@@ -1292,7 +1292,7 @@ instead
 
 %= form_for do_rename => begin
 %= label_for new_name => 'New Name'
-%= text_field 'new_name'
+%= text_field 'new_name', required => undef
 
 <p>List to rename:
 % for my $name (@$lists) {
@@ -1435,10 +1435,10 @@ to
 %= form_for login => (class => 'login') => begin
 %= hidden_field action => $action
 %= label_for username => 'Username'
-%= text_field 'username'
+%= text_field 'username', required => undef
 <p>
 %= label_for password => 'Password'
-%= password_field 'password'
+%= password_field 'password', required => undef
 <p>
 %= submit_button 'Login'
 % end
