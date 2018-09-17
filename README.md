@@ -152,20 +152,26 @@ This allows you to make changes to `trunk.pl` and check the result on
 
 ### Configuration
 
-You need a config file in the same directory, called `trunk.conf`.
-This is where you define your admins, if any.
+The keys to set:
 
-No admins:
+* `users` a hash of usernames and passwords defining your admins
+  (defaults to none)
+* `dir` sets the data directory (defaults to the current directory)
+* `uri` sets the redirection URI (defaults to
+  `https://communitywiki.org/trunk`)
+* `bot` sets the account for the bot, if you have one (defaults to
+  `trunk@botsin.space`)
 
-```perl
-{}
+Example setup:
+
 ```
-
-One admin:
-
-```perl
 {
-  users => { alex => 'fantastic password!' },
+  users => {
+    alex => 'Holz',
+  },
+  uri => 'http://localhost:3000',
+  dir => '/home/alex/src/trunk',
+  bot => 'trunk@botsin.space',
 }
 ```
 
