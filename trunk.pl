@@ -1275,7 +1275,8 @@ or
 <p>The list <em><%= $name %></em> was created.</p>
 
 <p>
-%= link_to 'Add another list' => 'create'
+<%= link_to url_for('describe')->query(name => $name) => begin %>Describe this list<% end %>,
+%= link_to 'add another list' => 'create'
 or
 %= link_to 'add an account' => 'add'
 </p>
