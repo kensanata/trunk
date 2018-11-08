@@ -40,9 +40,13 @@ $t->app->config({users=>{alex=>'let me in'}});
 # make sure this list exists
 $old_path = Mojo::File->new('Test.txt');
 $old_path->spurt("") unless -e $old_path;
+$old_desc = Mojo::File->new('Test.md');
+$old_desc->spurt("") unless -e $old_desc;
 
 $new_path = Mojo::File->new('Test2.txt');
 unlink($new_path) if -e $new_path;
+$new_desc = Mojo::File->new('Test2.md');
+unlink($new_desc) if -e $new_desc;
 
 $t->get_ok('/login' => form => {
   username => 'alex',
@@ -85,5 +89,7 @@ $t->post_ok('/do/rename' => form => { old_name => 'Test', new_name => 'Test2' })
 
 ok(! -e $old_path, 'Test.txt is gone');
 ok(-e $new_path, 'Test2.txt exists');
+ok(! -e $old_desc, 'Test.md is gone');
+ok(-e $new_desc, 'Test2.md exists');
 
 done_testing();

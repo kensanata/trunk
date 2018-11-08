@@ -734,13 +734,25 @@ post '/do/rename' => sub {
   return error($c, "This list already exists.") if -e $new_path;
 
   eval {
-    $new_path = $old_path->move_to($new_path);
+    $old_path->move_to($new_path);
     $log->info("$user renamed $old_name to $new_name");
   };
   if ($@) {
     $log->info("$user tried to rename $old_name to $new_name: $@");
     return error($c, "Renaming this list failed. Most likely because the new name contained a slash"
 		 . " or some other illegal character in filenames");
+  }
+
+  my $old_desc = Mojo::File->new("$dir/$old_name.md");
+  if (-e $old_desc) {
+    my $new_desc = Mojo::File->new("$dir/$new_name.md");
+    unlink($new_desc) if -e $new_desc;
+    eval {
+      $new_path = $old_desc->move_to($new_desc);
+    };
+    if ($@) {
+      $log->info("$user tried to rename the $old_name list description to $new_name: $@");
+    }
   }
 
   $c->render(template => 'do_rename', old_name => $old_name, new_name => $new_name);
