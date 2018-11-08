@@ -85,7 +85,7 @@ def main(account, url, username, password, debug=False):
     mentions = keep_mentions(notifications)
 
     for mention in mentions:
-        m = re.search("Please add me to ([^.]+)", mention["status"]["content"])
+        m = re.search("Please add me to ([^.<>]+)", mention["status"]["content"])
         if m:
             id = mention["status"]["id"]
             account = mention["status"]["account"]["acct"]
