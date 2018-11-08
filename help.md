@@ -9,6 +9,8 @@ This page is a about two kinds of help:
 
 These are the kinds of errors we know about.
 
+1. If you're trying to subscribe to a list, and everything seems to be fine but the application reported some failures ("Could not follow ...") then perhaps your follow request was simply queued by the server. Your will start following these people in due time (maybe just seconds later). Or in more technical terms: following is basically an asynchronous processes.
+
 1. If you're trying to subscribe to a list, and it takes about half a minute before you're getting an error, you might have a partial success: the list got created and people were added to it but eventually it timed out. And instance was down, or the list is too big, we're not quite sure. You can try again, or simply add the remaining accounts manually, one by one. In this case, send an email to Alex (see link at the very bottom): which account didn't get added? Perhaps these accounts need to be removed from the list and that'll fix it for everybody. 😅
 
 2. If you're trying to subscribe to a list, and it takes no time at all to get an error, and you didn't have to authorize the application, and the error happens on your instance ("Client authentication failed due to unknown client, no client authentication included, or unsupported authentication method") then the Trunk server might have gotten its registration wrong. In this case you can try sending a message to Alex (see link at the very bottom) and say which account you used. Perhaps the existing registration can be deleted and you can then try again. Sadly, there's also the possibility that your instance is simply not compatible and nobody knows what the problem is. 😓

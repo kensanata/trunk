@@ -18,25 +18,32 @@ human and interests change and nobody promised to either an expert on
 these topics or to be posting exclusively about these topics. And of
 course, people change, or leave. 🙂
 
-If you want to be [added to a list](/trunk/request), or removed from a
-list, or if you'd like to see a new list, or if you have any other
-questions and concerns, contact one of the administrators via
-Mastodon.
+**If you want to read** about one or more of these topics, all you
+have to do is click on the various lists linked below and follow the
+people on these lists.
 
-As *Trunk* and the number of requests is growing, we kindly
-ask you to mention just *one* of us. Thank you! 😅
-
-- [@ChangelingRandy@mastodon.social](https://mastodon.social/@ChangelingRandy)
-- [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
-- [@aminb@pleroma.site](https://pleroma.site/users/aminb)
-- [@Thepunkgeek@chaos.social](https://chaos.social/@Thepunkgeek)
-- [@eloisa@masto.pt](https://masto.pt/@eloisa)
-- [@kensanata@octodon.social](https://octodon.social/@kensanata)
-- [@trunk@botsin.space](https://botsin.space/@trunk) (experimental!)
+**If you write** about one or more of these topics and think that
+people wanting to read about the topic might benefit if they followed
+you, consider [volunteering for a list](/trunk/request).
 
 Note that you cannot volunteer other people. People have to volunteer
 themselves. Please encourage them to contact one of the
 administrators!
+
+If you want to be removed from a list, or if you'd like to see a new
+list, or if you have any other questions and concerns, contact one of
+the administrators via Mastodon.
+
+As *Trunk* and the number of requests is growing, we kindly
+ask you to mention just *one* of us. Thank you! 😅
+
+- [@trunk@botsin.space](https://botsin.space/@trunk)
+- [@kensanata@octodon.social](https://octodon.social/@kensanata)
+- [@eloisa@masto.pt](https://masto.pt/@eloisa)
+- [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
+- [@aminb@pleroma.site](https://pleroma.site/users/aminb)
+- [@Thepunkgeek@chaos.social](https://chaos.social/@Thepunkgeek)
+- [@ChangelingRandy@mastodon.social](https://mastodon.social/@ChangelingRandy)
 
 When you follow an entire list, this is what happens:
 
@@ -55,14 +62,10 @@ When you follow an entire list, this is what happens:
    (hopefully this helps you to quickly unfollow them if you made a
    mistake)
 
-If you follow all the accounts on the list, and new accounts get added
-at a later point, you won't automatically follow them. No automatic
+If you follow all the accounts on the list and new accounts get added
+at a later point you won't automatically follow them. No automatic
 updates!
 
 **Privacy**: We do not store your credentials. We use cookies to save
 your account while you're being redirected. These cookies should
 expire after 60s.
-
-(Also, since this is the early days, please know that there are
-downtimes when I'm desperately trying to fix things, probably right
-now! 😢)
