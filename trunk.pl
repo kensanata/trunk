@@ -504,6 +504,7 @@ post '/do/add' => sub {
   my @good;
   my @bad;
   for my $name (@lists) {
+    $name =~ s/&amp;/&/g;
     if (add_account(Mojo::File->new("$dir/$name.txt"), $account)) {
       push(@good, $name);
     } else {
@@ -547,6 +548,11 @@ sub bot_reply {
   my ($client_id, $client_secret) = split(' ', $client_path->slurp);
   my ($access_token) = split(' ', $user_path->slurp);
 
+  $log->debug("$bot is missing client id") unless $client_id;
+  $log->debug("$bot is missing client secret") unless $client_secret;
+  $log->debug("$bot is missing access token") unless $access_token;
+  $log->debug("$bot has access token") if $access_token;
+
   my ($name, $instance) = split(/\@/, $bot);
   my $client = Mastodon::Client->new(
     instance        => $instance,
@@ -571,7 +577,7 @@ sub bot_reply {
     $log->debug("$bot sent a direct message: $text");
   };
   if ($@) {
-    $log->error("$bot was unable to reply: $@");
+    $log->error("$bot was unable to reply [$text]: $@");
   }
 }
 
