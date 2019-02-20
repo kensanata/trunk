@@ -651,6 +651,7 @@ post '/do/search' => sub {
   my $account = $c->param('account');
   $account =~ s/^\s+//; # trim leading whitespace
   $account =~ s/\s+$//; # trim trailing whitespace
+  $account =~ s/^@//; # trim leading @
   return error($c, "Please provide an account.") unless $account;
   my %accounts;
   for my $file (<"$dir"/*.txt>) {
