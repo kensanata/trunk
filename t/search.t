@@ -54,4 +54,9 @@ $t->post_ok('/do/search' => form => { account => 'al' })
     ->text_is('h1' => 'Search for an account')
     ->element_exists('li a[href=/remove?account=Alex]');
 
+$t->post_ok('/do/search' => form => { account => '@al' })
+    ->status_is(200)
+    ->text_is('h1' => 'Search for an account')
+    ->element_exists('li a[href=/remove?account=Alex]');
+
 done_testing();
