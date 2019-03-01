@@ -30,6 +30,8 @@ Note that you cannot volunteer other people. People have to volunteer
 themselves. Please encourage them to contact one of the
 administrators!
 
+## Administrators
+
 If you want to be removed from a list, or if you'd like to see a new
 list, or if you have any other questions and concerns, contact one of
 the administrators via Mastodon.
@@ -39,11 +41,13 @@ ask you to mention just *one* of us. Thank you! 😅
 
 - [@trunk@botsin.space](https://botsin.space/@trunk)
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
-- [@eloisa@masto.pt](https://masto.pt/@eloisa)
+- [@amolith@masto.nixnet.xyz](https://masto.nixnet.xyz/@amolith)
+- [@skiring@mastodon.host](https://mastodon.host/@skiring)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
-- [@aminb@pleroma.site](https://pleroma.site/users/aminb)
-- [@Thepunkgeek@chaos.social](https://chaos.social/@Thepunkgeek)
 - [@ChangelingRandy@mastodon.social](https://mastodon.social/@ChangelingRandy)
+- [@eloisa@masto.pt](https://masto.pt/@eloisa)
+
+## How does it work?
 
 When you follow an entire list, this is what happens:
 
@@ -66,6 +70,10 @@ If you follow all the accounts on the list and new accounts get added
 at a later point you won't automatically follow them. No automatic
 updates!
 
-**Privacy**: We do not store your credentials. We use cookies to save
+## Privacy
+
+We do not store your credentials. We use cookies to save
 your account while you're being redirected. These cookies should
 expire after 60s.
+
+## The Lists
