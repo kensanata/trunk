@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # Trunk is a web application to help find people in the Fediverse
-# Copyright (C) 2018  Alex Schroeder <alex@gnu.org>
+# Copyright (C) 2018-2019  Alex Schroeder <alex@gnu.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -1412,8 +1412,18 @@ to
 <label><%= check_box $_ => 1, checked => undef %><%= $_ %></label>
 % };
 </p>
+<p>
+Please take a look at their profile and check that the request makes sense. If
+it does, you can accept their request by clicking the button below. This will
+add them to all the lists they requested.
+</p>
 %= submit_button
 <p>
+If you disagree, however, you need to figure out whether this is spam or a
+misunderstanding. If it is spam, just click the link below and delete the
+request from the queue. If it is a misunderstanding, message them directly and
+talk it over.
+</p>
 <%= link_to url_for('queue_delete')->query(acct => $item->{acct}) => begin %>Delete from queue<% end %>
 </p>
 % end
