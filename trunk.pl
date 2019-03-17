@@ -1467,6 +1467,7 @@ talk it over.
 <p>The account <%= $acct %> was deleted from the queue.</p>
 
 <p>
+<%= link_to url_for('search')->query(account => $acct) => begin %>Search for <%= $acct %><% end %>
 %= link_to 'Back to the queue' => 'queue'
 </p>
 
