@@ -672,6 +672,19 @@ post '/do/search' => sub {
 
 
 
+get '/blacklist' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'blacklist'));
+  }
+  my $md = to_markdown('blacklist.md');
+  $c->render(template => 'markdown',
+	     title => "Trunk Blacklist",
+	     md => $md);
+} => 'blacklist';
+
+
+
 get '/create' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -1149,6 +1162,7 @@ itself (such as <em>kensanata@gmail.com</em>).</p>
 
 <p>
 %= link_to 'Create a list' => 'create'
+%= link_to 'Check blacklist' => 'blacklist'
 </p>
 
 <p>Lists:
@@ -1353,6 +1367,7 @@ or
 <label><%= radio_button name => "index" %>the front page</label>,
 <label><%= radio_button name => "help" %>the help page</label>,
 <label><%= radio_button name => "request" %>the request to join</label>,
+<label><%= radio_button name => "blacklist" %>the blacklist</label>,
 and
 <label><%= radio_button name => "grab" %>the intro to the grab page</label>.
 </p>
@@ -1425,6 +1440,7 @@ request from the queue. If it is a misunderstanding, message them directly and
 talk it over.
 </p>
 <%= link_to url_for('queue_delete')->query(acct => $item->{acct}) => begin %>Delete from queue<% end %>
+%= link_to 'Check blacklist' => 'blacklist'
 </p>
 % end
 
