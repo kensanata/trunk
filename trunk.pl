@@ -1410,7 +1410,7 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 
 <p>The current queue of additions:</p>
 
-% for my $item (@$queue) {
+% while (my $item = shift @$queue) {
 
 %= form_for do_add => begin
 %= hidden_field 'dequeue' => 1
@@ -1442,6 +1442,11 @@ talk it over.
 <%= link_to url_for('queue_delete')->query(acct => $item->{acct}) => begin %>Delete from queue<% end %>
 %= link_to 'Check blacklist' => 'blacklist'
 </p>
+
+% if (@$queue > 0) {
+<hr>
+% }
+
 % end
 
 % }
