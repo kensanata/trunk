@@ -32,11 +32,15 @@ use utf8;
 plugin 'Config' => {
   default => {
     users => {},
+    pass => "moniker",
     dir => ".",
     uri => "https://communitywiki.org/trunk",
     bot => 'trunk@botsin.space',
   }
 };
+
+# Change the secret passphrase
+app->secrets([app->config('pass')]);
 
 # Use the config to set a global variable...
 my $dir = app->config('dir');

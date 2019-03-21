@@ -129,6 +129,7 @@ Then use `cpanm` to install the following:
 - `Mojolicious::Plugin::Authentication`
 - `Mastodon::Client`
 - `Text::Markdown`
+- `List::Util`
 - `MCE`
 
 If these modules get installed into `~/perl5` then you need to make
@@ -161,6 +162,10 @@ The keys to set:
   `https://communitywiki.org/trunk`)
 * `bot` sets the account for the bot, if you have one (defaults to
   `trunk@botsin.space`)
+* `pass` sets the
+  [passphrase](https://mojolicious.org/perldoc/Mojolicious/Guides/FAQ#What-does-Your-secret-passphrase-needs-to-be-changed-mean)
+  in case you're wondering about the "Your secret passphrase needs to
+  be changed" message in your logs.
 
 Example setup:
 
