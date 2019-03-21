@@ -9,8 +9,7 @@ If you click on one of the lists below, you'll see a page full of
 *people* that volunteered to be on that list. Yeah, *people*. Our
 goal is to connect newbies with *people*. The only exception we have
 is our [Organizations, NGOs & Associations](https://communitywiki.org/trunk/grab/Organisations,%20NGOs%20&%20Associations) list. All the other lists are about
-*people*. Click to see their timelines and follow them individually,
-or click the big button at the top to do follow them all. We hope this
+*people*. Click to see their timelines and follow them. We hope this
 helps you find some new people to follow.
 
 Please remember that we're all
@@ -47,33 +46,9 @@ ask you to mention just *one* of us. Thank you! 😅
 - [@ChangelingRandy@mastodon.social](https://mastodon.social/@ChangelingRandy)
 - [@eloisa@masto.pt](https://masto.pt/@eloisa)
 
-## How does it work?
-
-When you follow an entire list, this is what happens:
-
-1. you are redirected to your instance
-
-2. you must login if you aren't logged in already
-
-3. you must authorize Trunk (this application)
-
-4. Trunk makes your account follow every person in the list you picked
-   (unless you're following them already)
-   
-5. Trunk creates a list with the same name for you
-
-6. any new account Trunk just followed are added to this list
-   (hopefully this helps you to quickly unfollow them if you made a
-   mistake)
-
-If you follow all the accounts on the list and new accounts get added
-at a later point you won't automatically follow them. No automatic
-updates!
-
 ## Privacy
 
-We do not store your credentials. We use cookies to save
-your account while you're being redirected. These cookies should
-expire after 60s.
+We do not store any credentials. We don't store your IP numbers.
+Our web server also doesn't store IP numbers.
 
 ## The Lists

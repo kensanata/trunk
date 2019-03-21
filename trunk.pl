@@ -23,6 +23,7 @@ use Mojo::Log;
 use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
+use List::Util qw(shuffle);
 use utf8;
 
 # Create a file called trunk.conf in the same directory as trunk.pl and override
@@ -107,7 +108,7 @@ get '/grab/:name' => sub {
   my $c = shift;
   my $name = $c->param('name');
   my $path = Mojo::File->new("$dir/$name.txt");
-  my @accounts = sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
+  my @accounts = shuffle split(" ", $path->slurp);
   my $description = to_markdown("$name.md");
   my $md = to_markdown('grab.md');
   $md =~ s/\$name_encoded/url_escape($name)/ge;
