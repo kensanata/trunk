@@ -106,7 +106,7 @@ get '/' => sub {
   }
   $c->render(template => 'index', md => $md,
 	     lists => \@lists, empty_lists => \@empty_lists);
-} => 'main';
+} => 'index';
 
 get '/grab/:name' => sub {
   my $c = shift;
@@ -324,6 +324,14 @@ get '/help' => sub {
 	     md => $md);
 };
 
+get '/others' => sub {
+  my $c = shift;
+  my $md = to_markdown('others.md');
+  $c->render(template => 'markdown',
+	     title => "Other Sites",
+	     md => $md);
+};
+
 sub administrators {
   my $file = 'index.md';
   my $path = Mojo::File->new("$dir/$file");
@@ -337,7 +345,6 @@ sub administrators {
 
 get '/request' => sub {
   my $c = shift;
-  $c->render();
   my $md = to_markdown('request.md');
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
@@ -411,7 +418,7 @@ get '/login' => sub {
 get "/logout" => sub {
   my $self = shift;
   $self->logout();
-  $self->redirect_to('main');
+  $self->redirect_to('index');
 } => 'logout';
 
 
@@ -811,6 +818,7 @@ post '/do/describe' => sub {
 
   my $description = $c->param('description');
 
+  my $list = -e Mojo::File->new("$dir/$name.txt");
   my $path = Mojo::File->new("$dir/$name.md");
 
   if ($description) {
@@ -818,12 +826,14 @@ post '/do/describe' => sub {
     backup($path) if -e $path;
     $log->info("$user described $name");
     $path->spurt(encode_utf8($description));
-    $c->render(template => 'do_describe', name => $name, description => $description, saved => 1);
+    $c->render(template => 'do_describe', name => $name,
+	       description => $description, saved => 1, list => $list);
 
   } else {
 
     $description = decode_utf8($path->slurp) if -e $path;
-    $c->render(template => 'do_describe', name => $name, description => $description, saved => 0);
+    $c->render(template => 'do_describe', name => $name,
+	       description => $description, saved => 0, list => $list);
 
   }
 } => 'do_describe';
@@ -1372,6 +1382,7 @@ or
 <label><%= radio_button name => "index" %>the front page</label>,
 <label><%= radio_button name => "help" %>the help page</label>,
 <label><%= radio_button name => "request" %>the request to join</label>,
+<label><%= radio_button name => "others" %>the links to other lists</label>,
 <label><%= radio_button name => "blacklist" %>the blacklist</label>,
 and
 <label><%= radio_button name => "grab" %>the intro to the grab page</label>.
@@ -1387,7 +1398,13 @@ and
 
 % if ($saved) {
 <p>Description saved.
+% if ($list) {
 <%= link_to $c->url_for('grab', {name => $name}) => begin %>Check it out<% end %>.
+% } elsif ($name eq 'grab') {
+<%= link_to $c->url_for('grab', {name => 'Test'}) => begin %>Check it out<% end %>.
+% } else {
+<%= link_to $c->url_for($name) => begin %>Check it out<% end %>.
+% }
 </p>
 % }
 
@@ -1508,7 +1525,7 @@ talk it over.
 <p>
 You have been logged out.
 <p>
-Go back to the <%= link_to 'main menu' => 'main' %>.
+Go back to the <%= link_to 'main menu' => 'index' %>.
 
 
 @@ markdown.html.ep
