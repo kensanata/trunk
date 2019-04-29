@@ -165,7 +165,10 @@ The keys to set:
 * `pass` sets the
   [passphrase](https://mojolicious.org/perldoc/Mojolicious/Guides/FAQ#What-does-Your-secret-passphrase-needs-to-be-changed-mean)
   in case you're wondering about the "Your secret passphrase needs to
-  be changed" message in your logs.
+  be changed" message in your logs
+* `mass_follow` allows or disallows mass-following (the reason you
+  might want to disallow that is that users keep reporting errors
+  and I don't know how to fix this)
 
 Example setup:
 

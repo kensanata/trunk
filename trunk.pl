@@ -35,6 +35,7 @@ plugin 'Config' => {
     pass => "moniker",
     dir => ".",
     uri => "https://communitywiki.org/trunk",
+    mass_follow => 1,
     bot => 'trunk@botsin.space',
   }
 };
@@ -119,7 +120,8 @@ get '/grab/:name' => sub {
   $md =~ s/\$uri/app->config('uri')/ge;
   $md =~ s/\$name/$name/g;
   $c->render(template => 'grab', name => $name, accounts => \@accounts,
-	     description => $description, md => $md);
+	     description => $description, md => $md,
+	     mass_follow => app->config('mass_follow'));
 } => 'grab';
 
 get '/follow/:name' => sub {
@@ -1042,9 +1044,11 @@ this<% end %></p>
 
 <%== $md %>
 
+% if ($mass_follow) {
 <p class="needspace">
 <%= link_to url_for('follow')->query(name => $name) => (class => 'button') => begin %>Follow <%= $name %><% end %>
 </p>
+% }
 
 <ul class="follow">
 % for my $account (@$accounts) {
