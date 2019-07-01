@@ -855,11 +855,13 @@ get '/overview' => sub {
 };
 
 sub overview {
+  # HACK ALERT: plenty of shortcuts here which might only work for Mastodon...
   my $account = shift;
   my ($username, $domain) = split "@", $account;
   my $ua = Mojo::UserAgent->new();
   my $result;
-  # "https://octodon.social/.well-known/webfinger?resource=acct%3Akensanata%40octodon.social"
+  # We should get the first URL from here, looking at the "aliases" key:
+  # curl "https://octodon.social/.well-known/webfinger?resource=acct%3Akensanata%40octodon.social"
   my $url = "https://$domain/users/$username";
   my %obj = (id => $account, url => $url, bio => '', published => '');
   eval {
@@ -875,6 +877,12 @@ sub overview {
   }
   $obj{bio} = $result->json->{summary};
   my $outbox = $result->json->{outbox};
+  # We should get this URL from the previous one:
+  # curl -H 'Accept: application/json' https://octodon.social/users/kensanata
+  # gives us the "outbox" key and the value is a URL which we can fetch again
+  # curl https://octodon.social/users/kensanata/outbox
+  # and that gives us a short description including the "first" key which gives us a bunch of statuses
+  # and we just look at the first one
   $url = "$outbox?page=true";
   eval {
     $result = $ua->max_redirects(2)->get($url => {Accept => "application/json"})->result;
