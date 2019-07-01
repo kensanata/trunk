@@ -1503,6 +1503,7 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 % for my $account(@$accounts) {
 <li>
 %= link_to $account->{name} => $account->{url}
+<%= link_to url_for('remove')->query(account => $account->{id}) => (class => 'button') => begin %>remove account<% end %>
 %== $account->{summary}
 %   if ($account->{movedTo}) {
 %= link_to MOVED => $account->{movedTo}
