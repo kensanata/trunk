@@ -857,17 +857,38 @@ get '/overview' => sub {
 sub overview {
   my $account = shift;
   my ($username, $domain) = split "@", $account;
-  # "https://octodon.social/users/kensanata"
-  my $url = "https://$domain/users/$username";
   my $ua = Mojo::UserAgent->new();
   my $result;
+  # "https://octodon.social/.well-known/webfinger?resource=acct%3Akensanata%40octodon.social"
+  my $url = "https://$domain/users/$username";
+  my %obj = (id => $account, url => $url, bio => '', published => '');
   eval {
     $result = $ua->max_redirects(2)->get($url => {Accept => "application/json"})->result;
   };
-  return { id => $account, url => $url, name => $account, summary => "<p>Error: $@</p>" } if $@;
-  return $result->json if $result->is_success;
-  return { id => $account, url => $url, name => $account,
-	   summary => "<p>" . $result->code . ": " . $result->message . "</p>" };
+  if ($@) {
+    $obj{bio} = "<p>Error: $@</p>";
+    return \%obj;
+  }
+  if (not $result->is_success) {
+    $obj{bio} = "<p>" . $result->code . ": " . $result->message . "</p>";
+    return \%obj;
+  }
+  $obj{bio} = $result->json->{summary};
+  my $outbox = $result->json->{outbox};
+  $url = "$outbox?page=true";
+  eval {
+    $result = $ua->max_redirects(2)->get($url => {Accept => "application/json"})->result;
+  };
+  if ($@) {
+    $obj{published} = "<p>Error: $@</p>";
+    return \%obj;
+  }
+  if (not $result->is_success) {
+    $obj{published} = "<p>" . $result->code . ": " . $result->message . "</p>";
+    return \%obj;
+  }
+  $obj{published} = $result->json->{orderedItems}->[0]->{published};
+  return \%obj;
 }
 
 get '/do/overview' => sub {
@@ -1501,11 +1522,14 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 <ul>
 % for my $account(@$accounts) {
 <li>
-    %= link_to $account->{name} || $account->{preferredUsername} => $account->{url}
+    %= link_to $account->{id} => $account->{url}
 <%= link_to url_for('remove')->query(account => $account->{id}) => (class => 'button') => begin %>remove account<% end %>
 <div class="bio">
-%== $account->{summary}
+%== $account->{bio}
 </div>
+<p class="published">
+%== $account->{published}
+</p>
 %   if ($account->{movedTo}) {
 %= link_to MOVED => $account->{movedTo}
 %   }
@@ -1665,6 +1689,7 @@ ul.follow { padding: 5px 0 }
 .alert { font-weight: bold; }
 .login label { display: inline-block; width: 12ex; }
 .bio { font-size: smaller; }
+.published { font-size: smaller; }
 label { white-space:  nowrap; }
 textarea { width: 100%; height: 10ex; font-size: inherit; }
 input { font-size: inherit; }
