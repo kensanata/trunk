@@ -854,21 +854,20 @@ get '/overview' => sub {
   $c->render(template => 'overview', lists => \@lists);
 };
 
-# sub webfinger {
-#   my $account = shift;
-#   my ($username, $domain) = split "@", $account;
-#   my $url = "https://$domain/.well-known/webfinger?acct:$account";
-#   my $ua = Mojo::UserAgent->new();
-#   return $ua->get_p($url => {Accept => "application/json"});
-# }
-
 sub overview {
   my $account = shift;
   my ($username, $domain) = split "@", $account;
   # "https://octodon.social/users/kensanata"
   my $url = "https://$domain/users/$username";
   my $ua = Mojo::UserAgent->new();
-  return $ua->max_redirects(2)->get($url => {Accept => "application/json"})->result->json;
+  my $result;
+  eval {
+    $result = $ua->max_redirects(2)->get($url => {Accept => "application/json"})->result;
+  };
+  return { id => $account, url => $url, name => $account, summary => "<p>Error: $@</p>" } if $@;
+  return $result->json if $result->is_success;
+  return { id => $account, url => $url, name => $account,
+	   summary => "<p>" . $result->code . ": " . $result->message . "</p>" };
 }
 
 get '/do/overview' => sub {
@@ -1502,9 +1501,11 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 <ul>
 % for my $account(@$accounts) {
 <li>
-%= link_to $account->{name} => $account->{url}
+    %= link_to $account->{name} || $account->{preferredUsername} => $account->{url}
 <%= link_to url_for('remove')->query(account => $account->{id}) => (class => 'button') => begin %>remove account<% end %>
+<div class="bio">
 %== $account->{summary}
+</div>
 %   if ($account->{movedTo}) {
 %= link_to MOVED => $account->{movedTo}
 %   }
@@ -1660,9 +1661,10 @@ p.needspace {
 }
 ul.follow { padding: 5px 0 }
 .follow li { display: block; margin-bottom: 20pt;}
-.logo {float: right; max-height: 300px; max-width:20%; }
+.logo { float: right; max-height: 300px; max-width:20%; }
 .alert { font-weight: bold; }
 .login label { display: inline-block; width: 12ex; }
+.bio { font-size: smaller; }
 label { white-space:  nowrap; }
 textarea { width: 100%; height: 10ex; font-size: inherit; }
 input { font-size: inherit; }
