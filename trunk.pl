@@ -20,6 +20,7 @@ use Mastodon::Client;
 use MCE::Loop chunk_size => 1;
 use Mojo::Util qw(url_escape);
 use Mojo::Log;
+use Mojo::UserAgent;
 use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
@@ -840,6 +841,55 @@ post '/do/describe' => sub {
   }
 } => 'do_describe';
 
+get '/overview' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'overview'));
+  }
+  my @lists;
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
+    my $name = Mojo::File->new($file)->basename('.txt');
+    push(@lists, $name);
+  }
+  $c->render(template => 'overview', lists => \@lists);
+};
+
+# sub webfinger {
+#   my $account = shift;
+#   my ($username, $domain) = split "@", $account;
+#   my $url = "https://$domain/.well-known/webfinger?acct:$account";
+#   my $ua = Mojo::UserAgent->new();
+#   return $ua->get_p($url => {Accept => "application/json"});
+# }
+
+sub overview {
+  my $account = shift;
+  my ($username, $domain) = split "@", $account;
+  # "https://octodon.social/users/kensanata"
+  my $url = "https://$domain/users/$username";
+  my $ua = Mojo::UserAgent->new();
+  return $ua->max_redirects(2)->get($url => {Accept => "application/json"})->result->json;
+}
+
+get '/do/overview' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'describe'));
+  }
+
+  my $name = $c->param('name');
+  return error($c, "Please pick a list to describe.") unless $name;
+
+  my $path = Mojo::File->new("$dir/$name.txt");
+  return error($c, "Please pick an existing list.") unless -e $path;
+
+  my @accts = split(" ", $path->slurp);
+  return error($c, "$name is an empty list.") unless @accts;
+
+  my @results = map { overview $_ } @accts;
+  $c->render(template => 'do_overview', name => $name, accounts => \@results);
+} => 'do_overview';
+
 
 get '/api/v1/list' => sub {
   my $c = shift;
@@ -1131,6 +1181,7 @@ logged, just in case.</p>
 <li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Describe a list' => 'describe' %></li>
+<li><%= link_to 'Overview of a list' => 'overview' %></li>
 <li><%= link_to 'Check the queue' => 'queue' %></li>
 <li><%= link_to 'Check the log' => 'log' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
@@ -1427,6 +1478,37 @@ list. Please use Markdown. Feel free to link to Wikipedia, e.g.
 </p>
 % end
 
+
+@@ overview.html.ep
+% title 'Overview over a list';
+<h1>Overview over a  list</h1>
+
+%= form_for do_overview => begin
+
+<p>Choose list:
+% for my $name (@$lists) {
+<label><%= radio_button name => $name %><%= $name %></label>
+% }
+</p>
+
+%= submit_button
+% end
+
+
+@@ do_overview.html.ep
+% title 'Overview over a list';
+<h1>Overview over a  list</h1>
+
+<ul>
+% for my $account(@$accounts) {
+<li>
+%= link_to $account->{name} => $account->{url}
+%== $account->{summary}
+%   if ($account->{movedTo}) {
+%= link_to MOVED => $account->{movedTo}
+%   }
+% }
+</ul>
 
 @@ queue.html.ep
 % title 'Queue';
