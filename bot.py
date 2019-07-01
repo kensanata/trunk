@@ -85,11 +85,11 @@ def main(account, url, username, password, debug=False):
     mentions = keep_mentions(notifications)
 
     for mention in mentions:
-        m = re.search("Please add me to ([^.<>]+)", mention["status"]["content"])
-        if m:
+        match = re.search("Please add me to ([^.<>]+)", mention["status"]["content"])
+        if match:
             id = mention["status"]["id"]
             account = mention["status"]["account"]["acct"]
-            names = m.group(1).split(", ")
+            names = match.group(1).split(", ")
             if debug:
                 print(account + " wants to be added to " + ", ".join(names))
             if add_to_queue(account, id, names, url, username, password, debug):
