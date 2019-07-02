@@ -47,6 +47,8 @@ app->secrets([app->config('pass')]);
 # Use the config to set a global variable...
 my $dir = app->config('dir');
 
+plugin Minion => { SQLite => ':temp:' };
+
 # This log is for what the admins do
 my $log = Mojo::Log->new(path => "$dir/admin.log", level => 'debug');
 
@@ -856,9 +858,10 @@ get '/overview' => sub {
 
 sub overview {
   # HACK ALERT: plenty of shortcuts here which might only work for Mastodon...
+  my $ua = Mojo::UserAgent->new->connect_timeout(3)->request_timeout(5);
   my $account = shift;
+  $log->debug("start working on $account");
   my ($username, $domain) = split "@", $account;
-  my $ua = Mojo::UserAgent->new();
   my $result;
   # We should get the first URL from here, looking at the "aliases" key:
   # curl "https://octodon.social/.well-known/webfinger?resource=acct%3Akensanata%40octodon.social"
@@ -869,13 +872,16 @@ sub overview {
   };
   if ($@) {
     $obj{bio} = "<p>Error: $@</p>";
+    $log->warn("$url $@");
     return \%obj;
   }
   if (not $result->is_success) {
     $obj{bio} = "<p>" . $result->code . ": " . $result->message . "</p>";
+    $log->warn("$url result " . $result->code . ": " . $result->message);
     return \%obj;
   }
-  $obj{bio} = $result->json->{summary};
+  $obj{bio} = $result->json->{summary}
+    if $result->json->{summary};
   my $outbox = $result->json->{outbox};
   # We should get this URL from the previous one:
   # curl -H 'Accept: application/json' https://octodon.social/users/kensanata
@@ -889,15 +895,23 @@ sub overview {
   };
   if ($@) {
     $obj{published} = "<p>Error: $@</p>";
+    $log->warn("$url error $@");
     return \%obj;
   }
   if (not $result->is_success) {
     $obj{published} = "<p>" . $result->code . ": " . $result->message . "</p>";
+    $log->warn("$url result " . $result->code . ": " . $result->message);
     return \%obj;
   }
-  $obj{published} = $result->json->{orderedItems}->[0]->{published};
+  $obj{published} = $result->json->{orderedItems}->[0]->{published}
+    if $result->json->{orderedItems}->[0]->{published};
+  $log->debug("end working on $account");
   return \%obj;
 }
+
+app->minion->add_task(overview => sub {
+  my ($job, $account) = @_;
+  $job->finish(overview $account) });
 
 get '/do/overview' => sub {
   my $c = shift;
@@ -911,10 +925,26 @@ get '/do/overview' => sub {
   my $path = Mojo::File->new("$dir/$name.txt");
   return error($c, "Please pick an existing list.") unless -e $path;
 
-  my @accts = split(" ", $path->slurp);
-  return error($c, "$name is an empty list.") unless @accts;
+  my @accounts = split(" ", $path->slurp);
+  return error($c, "$name is an empty list.") unless @accounts;
 
-  my @results = map { overview $_ } @accts;
+  my @ids = map { $c->app->minion->enqueue(overview => [$_]) } @accounts;
+
+  my %jobs;
+  my $worker = $c->app->minion->repair->worker->register;
+  do {
+    for my $id (keys %jobs) {
+      delete $jobs{$id} if $jobs{$id}->is_finished;
+    }
+    if (keys %jobs >= 40) { sleep 1 }
+    else {
+      my $job = $worker->dequeue(1);
+      $jobs{$job->id} = $job->start if $job;
+    }
+  } while keys %jobs;
+  $worker->unregister;
+
+  my @results = map { $c->app->minion->job($_)->info->{result} } @ids;
   $c->render(template => 'do_overview', name => $name, accounts => \@results);
 } => 'do_overview';
 
