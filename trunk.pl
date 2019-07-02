@@ -916,11 +916,11 @@ app->minion->add_task(overview => sub {
 get '/do/overview' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
-    return $c->redirect_to($c->url_for('login')->query(action => 'describe'));
+    return $c->redirect_to($c->url_for('login')->query(action => 'overview'));
   }
 
   my $name = $c->param('name');
-  return error($c, "Please pick a list to describe.") unless $name;
+  return error($c, "Please pick a list for the overview.") unless $name;
 
   my $path = Mojo::File->new("$dir/$name.txt");
   return error($c, "Please pick an existing list.") unless -e $path;

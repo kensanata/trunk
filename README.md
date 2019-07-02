@@ -127,6 +127,8 @@ Then use `cpanm` to install the following:
 - `Mojolicious`
 - `Mojolicious::Plugin::Config`
 - `Mojolicious::Plugin::Authentication`
+- `Mojolicious::Plugin::Minion`
+- `Minion::Backend::SQLite`
 - `Mastodon::Client`
 - `Text::Markdown`
 - `List::Util`
