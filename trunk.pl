@@ -1322,6 +1322,7 @@ lists because they don't exist:
 
 <p>
 %= link_to 'Add another account' => 'add'
+%= link_to 'Check the queue' => 'queue'
 </p>
 
 
