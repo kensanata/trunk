@@ -1299,6 +1299,7 @@ logged, just in case.</p>
 <li><%= link_to 'Search an account' => 'search' %></li>
 <li><%= link_to 'Add an account' => 'add' %></li>
 <li><%= link_to 'Remove an account' => 'remove' %></li>
+<li><%= link_to 'Review accounts' => 'review' %></li>
 <li><%= link_to 'Create a list' => 'create' %></li>
 <li><%= link_to 'Rename a list' => 'rename' %></li>
 <li><%= link_to 'Describe a list' => 'describe' %></li>
