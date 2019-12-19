@@ -660,7 +660,7 @@ get '/search' => sub {
 };
 
 
-post '/do/search' => sub {
+any '/do/search' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'search'));
@@ -1118,7 +1118,7 @@ post '/do/review' => sub {
   my $user = $c->current_user->{username};
   # make timestamp
   my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time);
-  my $today = sprintf("%02d-%02d-%04d", $mday, $mon + 1, $year + 1900);
+  my $today = sprintf("%04d-%02d-%02d", $year + 1900, $mon + 1, $mday);
   # load reviews and get the checked accounts from the parameters
   my $reviews = load_reviews();
   my $accounts = $c->every_param('account');
@@ -1716,19 +1716,20 @@ talk it over.
 %= form_for do_review => begin
 
 <p>Accounts to review
-% for my $account (sort { lc($a) cmp lc($b) } keys %$reviews) {
+% for my $account (sort { lc($reviews->{$a}||'A' . $a) cmp lc($reviews->{$b}||'A' . $b) } keys %$reviews) {
 <br><label>
 %= check_box account => $account
 % my ($username, $domain) = split "@", $account;
 % if ($domain) {
 % my $url = "https://$domain/users/$username";
 %= link_to $account => $url
+(<%= link_to url_for('do_search')->query(account => $account) => begin %>search<% end %>)
 % } else {
 %= $account
 % }
 </label>
 % if ($reviews->{$account}) {
-last reviewed <%= $reviews->{$account} %>
+%= $reviews->{$account}
 % }
 % }
 </p>
