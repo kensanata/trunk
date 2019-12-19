@@ -8,7 +8,8 @@ Mastodon is a free, open-source, decentralized microblogging network.
 If you click on one of the lists below, you'll see a page full of
 *people* that volunteered to be on that list. Yeah, *people*. Our
 goal is to connect newbies with *people*. The only exception we have
-is our [Organizations, NGOs & Associations](https://communitywiki.org/trunk/grab/Organisations,%20NGOs%20&%20Associations) list. All the other lists are about
+is our [list of Organizations](https://communitywiki.org/trunk/grab/Organisations).
+All the other lists are about
 *people*. Click to see their timelines and follow them. We hope this
 helps you find some new people to follow.
 
@@ -43,8 +44,8 @@ ask you to mention just *one* of us. Thank you! 😅
 - [@amolith@masto.nixnet.xyz](https://masto.nixnet.xyz/@amolith)
 - [@skiring@mastodon.host](https://mastodon.host/@skiring)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
-- [@ChangelingRandy@mastodon.social](https://mastodon.social/@ChangelingRandy)
 - [@eloisa@masto.pt](https://masto.pt/@eloisa)
+- [@changeling@tenforward.social](https://tenforward.social/@changeling) 
 
 ## Privacy
 

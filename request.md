@@ -18,4 +18,9 @@ just post their toots like your parents did, by hand!)
 We're trying to help newbies find people to follow. If you have an
 NGO account, or some other account that is mostly boosting news and
 doesn't represent an actual, single person to talk to, we'll add you
-to the [Organisations, NGOs & Associations](https://communitywiki.org/trunk/grab/Organisations,%20NGOs%20&%20Associations) list.
+to the [Organisations](https://communitywiki.org/trunk/grab/Organisations) list.
+
+Please note that this Trunk instance is for English writers and readers.
+we realize that the Fediverse is multilingual, but at the same time
+it's no fun for newbies if the accounts listed write in a language they
+can't read. Hopefully more such sites for different languages will pop up!
