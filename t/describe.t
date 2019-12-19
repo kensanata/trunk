@@ -78,7 +78,7 @@ for my $page (qw(index help request others blacklist grab)) {
 
   # unlink the description of a special file
   $path = Mojo::File->new("$page.md");
-  unlink($path) if -e $path;
+  rename($path, "$path~") if -e $path;
 
   $t->post_ok('/do/describe' => form => {
     name => $page })
@@ -106,6 +106,9 @@ for my $page (qw(index help request others blacklist grab)) {
   $t->get_ok($url)
       ->status_is(200)
       ->content_like(qr/Roll a d6!/);
+
+  # undo test
+  rename("$path~", $path);
 }
 
 done_testing();

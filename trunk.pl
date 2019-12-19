@@ -1072,6 +1072,69 @@ get '/queue/delete' => sub {
   }
 } => 'queue_delete';
 
+
+
+sub load_reviews {
+  my $reviews;
+  for my $file (glob "$dir/*.txt") {
+    my $path = Mojo::File->new($file);
+    my @accounts = split(" ", $path->slurp);
+    for my $account(@accounts) {
+      $reviews->{$account} = undef;
+    }
+  }
+  my $path = Mojo::File->new("$dir/reviews");
+  my $dates = decode_json $path->slurp if -e $path;
+  for my $account(keys %$dates) {
+    next unless exists $reviews->{$account};
+    $reviews->{$account} = $dates->{$account};
+  }
+  return $reviews;
+}
+
+sub save_reviews {
+  my $reviews = shift;
+  # remove nulls
+  foreach my $account (keys %$reviews) {
+    delete $reviews->{$account} unless $reviews->{$account};
+  }
+  my $path = Mojo::File->new("$dir/reviews");
+  $path->spurt(encode_json $reviews);
+}
+
+get '/review' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'review'));
+  }
+  $c->render(template => 'review', reviews => load_reviews());
+};
+
+post '/do/review' => sub {
+  my $c = shift;
+  if (not $c->is_user_authenticated()) {
+    return $c->redirect_to($c->url_for('login')->query(action => 'review'));
+  }
+  my $user = $c->current_user->{username};
+  # make timestamp
+  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time);
+  my $today = sprintf("%02d-%02d-%04d", $mday, $mon + 1, $year + 1900);
+  # load reviews and get the checked accounts from the parameters
+  my $reviews = load_reviews();
+  my $accounts = $c->every_param('account');
+  my $reviewed = 0;
+  for my $account (@$accounts) {
+    # don't mark non-existing accounts as reviewed
+    next unless exists $reviews->{$account};
+    my $message = "reviewed $today by $user";
+    next if $reviews->{$account}||'' eq $message;
+    $reviews->{$account} = $message;
+    $reviewed++;
+  }
+  save_reviews($reviews) if $reviewed;
+  $c->render(template => 'review_done', reviewed => $reviewed);
+} => 'do_review';
+
 app->defaults(layout => 'default');
 app->start;
 
@@ -1597,7 +1660,7 @@ Add
 </a>
 to
 % for (@{$item->{names}}) {
-<label><%= check_box $_ => 1, checked => undef %><%= $_ %></label>
+<label><%= check_box $_ => 1 %><%= $_ %></label>
 % };
 </p>
 <p>
@@ -1643,6 +1706,52 @@ talk it over.
 <%= link_to url_for('search')->query(account => $acct) => begin %>Search for <%= $acct %><% end %>
 %= link_to 'Back to the queue' => 'queue'
 </p>
+
+
+@@ review.html.ep
+% title 'Review accounts';
+<h1>Review accounts</h1>
+
+%= form_for do_review => begin
+
+<p>Accounts to review
+% for my $account (sort { lc($a) cmp lc($b) } keys %$reviews) {
+<br><label>
+%= check_box account => $account
+% my ($username, $domain) = split "@", $account;
+% if ($domain) {
+% my $url = "https://$domain/users/$username";
+%= link_to $account => $url
+% } else {
+%= $account
+% }
+</label>
+% if ($reviews->{$account}) {
+last reviewed <%= $reviews->{$account} %>
+% }
+% }
+</p>
+
+%= submit_button
+% end
+
+
+@@ review_done.html.ep
+% title 'Review accounts';
+<h1>Review accounts</h1>
+
+% if ($reviewed < 1) {
+<p>No account was marked as reviewed.</p>
+% } elsif ($reviewed == 1) {
+<p>One account was marked as reviewed.</p>
+% } elsif ($reviewed > 1) {
+<p><%= $reviewed %> accounts were marked as reviewed.</p>
+% }
+
+<p>
+%= link_to 'Back to reviews' => 'review'
+</p>
+
 
 
 @@ login.html.ep
