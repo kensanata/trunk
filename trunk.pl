@@ -1074,6 +1074,15 @@ get '/queue/delete' => sub {
 
 
 
+sub urls {
+  my %urls;
+  map {
+    my ($username, $domain) = split /\@/;
+    $urls{$_} = "https://$domain/users/$username" if $domain;
+  } @_;
+  return \%urls;
+}
+
 sub load_reviews {
   my $reviews;
   for my $file (glob "$dir/*.txt") {
@@ -1107,7 +1116,15 @@ get '/review' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'review'));
   }
-  $c->render(template => 'review', reviews => load_reviews());
+
+  my $reviews = load_reviews();
+  # shuffle the accounts without reviews
+  my @accounts = shuffle grep { not $reviews->{$_} } keys %$reviews;
+  # and append the accounts with reviews in descending order
+  push @accounts, sort { $reviews->{$a} . $a cmp $reviews->{$b} . $b } grep { $reviews->{$_} } keys %$reviews;
+  my $urls = urls keys %$reviews;
+  $c->render(template => 'review', reviews => $reviews,
+	     accounts => \@accounts, urls => $urls);
 };
 
 post '/do/review' => sub {
@@ -1716,18 +1733,17 @@ talk it over.
 %= form_for do_review => begin
 
 <p>Accounts to review
-% for my $account (sort { lc($reviews->{$a}||'A' . $a) cmp lc($reviews->{$b}||'A' . $b) } keys %$reviews) {
+% for my $account (@$accounts) {
 <br><label>
 %= check_box account => $account
-% my ($username, $domain) = split "@", $account;
-% if ($domain) {
-% my $url = "https://$domain/users/$username";
+% my $url = $urls->{$account};
+% if ($url) {
 %= link_to $account => $url
-(<%= link_to url_for('do_search')->query(account => $account) => begin %>search<% end %>)
 % } else {
 %= $account
 % }
 </label>
+(<%= link_to url_for('do_search')->query(account => $account) => begin %>search<% end %>)
 % if ($reviews->{$account}) {
 %= $reviews->{$account}
 % }
