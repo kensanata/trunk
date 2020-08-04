@@ -1678,7 +1678,7 @@ Add
 </a>
 to
 % for (@{$item->{names}}) {
-<label><%= check_box $_ => 1 %><%= $_ %></label>
+<label><%= check_box $_ => 1, checked => undef %><%= $_ %></label>
 % };
 </p>
 <p>
