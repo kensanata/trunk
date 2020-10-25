@@ -345,6 +345,7 @@ sub administrators {
   while ($text =~ /^- \[(@\S+)\]/mg) {
     push(@admins, $1);
   }
+  $log->debug("The admins are: @admins");
   return \@admins;
 }
 
@@ -376,6 +377,7 @@ get 'do/request' => sub {
   my $admins = administrators();
   my $lucky = $admins->[int(rand(@$admins))];
   my $text = url_escape("$lucky Please add me to @lists. #Trunk");
+  $log->debug("Suggested message: $text");
   my $url = "https://$instance/share?text=$text";
   $c->render(template => 'request_done',
 	     url => $url);
