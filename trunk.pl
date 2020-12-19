@@ -1113,10 +1113,10 @@ logged, just in case.</p>
 @@ feed.rss.ep
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-  <title>Trunk additions ($name)</title>
+<title>Trunk additions ($name)</title>
 <description>New accounts listed on this instance of Trunk.</description>
-<link><%= url_for('index') %></link>
-<atom:link rel=\"self\" type=\"application/rss+xml\" href=\"<%= url_for('feed') %>\" />
+<link><%= url_for('index')->to_abs %></link>
+<atom:link rel="self" type="application/rss+xml" href="<%= url_for('feed')->to_abs %>" />
 <generator>Trunk</generator>
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 % for my $item (@$items) {
