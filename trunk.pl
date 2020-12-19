@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # Trunk is a web application to help find people in the Fediverse
-# Copyright (C) 2018-2019  Alex Schroeder <alex@gnu.org>
+# Copyright (C) 2018-2020  Alex Schroeder <alex@gnu.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,6 @@
 
 use Mojolicious::Lite;
 use Mastodon::Client;
-use MCE::Loop chunk_size => 1;
 use Mojo::Util qw(url_escape);
 use Mojo::Log;
 use Mojo::UserAgent;
@@ -36,7 +35,6 @@ plugin 'Config' => {
     pass => "moniker",
     dir => ".",
     uri => "https://communitywiki.org/trunk",
-    mass_follow => 1,
     bot => 'trunk@botsin.space',
   }
 };
@@ -123,192 +121,13 @@ get '/grab/:name' => sub {
   $md =~ s/\$uri/app->config('uri')/ge;
   $md =~ s/\$name/$name/g;
   $c->render(template => 'grab', name => $name, accounts => \@accounts,
-	     description => $description, md => $md,
-	     mass_follow => app->config('mass_follow'));
+	     description => $description, md => $md);
 } => 'grab';
-
-get '/follow/:name' => sub {
-  my $c = shift;
-  my $name = $c->param('name');
-  $c->render(template => 'follow', name => $name);
-} => 'follow';
-
-get '/follow_confirm' => sub {
-  my $c = shift;
-  my $account = $c->param('account');
-  my $name = $c->param('name');
-  # clean up user input
-  $account =~ s/^\s+//;
-  $account =~ s/\s+$//;
-  $account =~ s/^@//;
-  $c->render(template => 'follow_confirm', name => $name, account => $account);
-} => 'follow_confirm';
-
-get '/auth' => sub {
-  my $c = shift;
-  my $account = $c->param('account');
-  my $action = $c->param('action');
-  my $name = $c->param('name');
-  my $logging = $c->param('logging');
-  app->log->debug("$account wants to authorize the '$action' action for the $name list")
-      if $logging;
-  $c->cookie(account => $account, {expires => time + 60});
-  $c->cookie(action => $action, {expires => time + 60});
-  $c->cookie(name => $name, {expires => time + 60});
-  $c->cookie(logging => $logging, {expires => time + 60});
-  my $client = client($c, $account, $logging);
-  return unless $client;
-  # workaround for Mastodon::Client 0.015
-  my $instance = (split('@', $account, 2))[1];
-  my $url = $client->authorization_url(instance => $instance);
-  $url =~ s/client_id=[a-zA-Z0-9]+/client_id=XXX/;
-  app->log->debug("$account is being redirected to $url")
-      if $logging;
-  $c->redirect_to($client->authorization_url(instance => $instance));
-} => 'auth';
-
-sub load_credentials {
-  my $where = shift;
-  my $file = "$dir/credentials";
-  if (open(my $fh, "<", $file)) {
-    while (my $line = <$fh>) {
-      next unless $line;
-      my ($instance, $client_id, $client_secret) = split(" ", $line);
-      return ($instance, $client_id, $client_secret) if $instance eq $where;
-    }
-  }
-}
-
-sub save_credentials {
-  my $file = "$dir/credentials";
-  open(my $fh, ">>", $file) || die "Cannot append to $file: $!";
-  print $fh join(" ", @_) . "\n";
-  close($fh) || die "Cannot close $file: $!";
-}
-
-sub client {
-  my $c = shift;
-  my $account = shift;
-  my $logging = shift;
-  my ($who, $where) = split(/@/, $account);
-  if (not $where) {
-    return error($c, "Account must look like an email address, "
-		 . 'e.g. kensanata@octodon.social');
-  }
-
-  # set up client attributes
-  my %attributes = (
-    instance	    => $where,
-    redirect_uri    => app->config('uri'),
-    scopes          => ['follow', 'read', 'write'],
-    name	    => 'Trunk',
-    website	    => app->config('uri'), );
-
-  my ($instance, $client_id, $client_secret) = load_credentials($where);
-
-  my $client;
-  if ($instance) {
-    app->log->debug("$account found client credentials for $instance: "
-		. "id " . ($client_id ? "yes" : "no") . ", "
-		. "secret " . ($client_secret ? "yes" : "no"))
-	if $logging;
-    $attributes{client_id}     = $client_id;
-    $attributes{client_secret} = $client_secret;
-    $client = Mastodon::Client->new(%attributes);
-  } else {
-    app->log->debug("$account found no client credentials for $where")
-	if $logging;
-    $client = Mastodon::Client->new(%attributes);
-    $client->register();
-    $instance = $client->instance->uri;
-    $instance =~ s!^https://!!;
-    $client_id = $client->client_id;
-    $client_secret = $client->client_secret;
-    app->log->debug("$account registered client and got new credentials for $instance: "
-		. "id " . ($client_id ? "yes" : "no") . ", "
-		. "secret " . ($client_secret ? "yes" : "no"))
-	if $logging;
-    save_credentials($instance, $client->client_id, $client->client_secret);
-  }
-  app->log->debug("$account has a client: " . ($client ? "yes" : "no"))
-      if $logging;
-  return $client;
-}
-
-sub follow {
-  my $client = shift;
-  my $list_id = shift;
-  my $acct = shift;
-  my $account;
-
-  eval { $account = $client->remote_follow($acct) };
-  return "Could not follow $acct" if $@;
-
-  eval { $client->post("lists/$list_id/accounts" => {account_ids => [$account->{id}]}) };
-  return "Could not add $acct to the list" if $@;
-
-  return "Followed $acct";
-}
-
-get 'do/follow' => sub {
-  my $c = shift;
-
-  my $code = $c->param('code')
-      || return error($c, "We failed to get an authorization code.");
-
-  my $account = $c->param('account')
-      || return error($c, "We did not find the account in the cookie.");
-
-  my $name = $c->param('name')
-      || return error($c, "We did not find the list name in the cookie.");
-
-  my $logging = $c->param('logging'); # optional
-
-  my $client = client($c, $account, $logging) || return;
-
-  # We don't save the access_token returned by this call!
-  eval {
-    app->log->debug("$account authorizing using a code: " . ($code ? "yes" : "no"))
-	if $logging;
-    $client->authorize(access_code => $code);
-  };
-  if ($@) {
-    return error($c, "Authorisation failed. Did you try to reload the page? "
-		 . "This will not work since we're not saving the access token.");
-  }
-
-  # Create the list and add the new accounts we're following to the new list, if
-  my $list = $client->post('lists', {title => $name});
-  if ($@) {
-    return error("List creation of $name failed");
-  }
-  my $list_id = $list->{id};
-
-  # get the new accounts we're supposed to follow (strings)
-  my $path = Mojo::File->new("$dir/$name.txt");
-  my @accts = split(" ", $path->slurp);
-
-  # work in parallel and gather results
-  app->log->debug("$account begins to follow " . scalar(@accts) . " accounts from list $name")
-      if $logging;
-  my @results = mce_loop {
-    MCE->gather(follow($client, $list_id, $_));
-  } @accts;
-
-  # done
-  app->log->debug("$account followed " . scalar(@results) . " accounts from list $name")
-      if $logging;
-  $c->render(template => 'follow_done',
-	     name => $name,
-	     results => \@results);
-} => 'do_follow';
-
 
 get '/logo' => sub {
   my $c = shift;
   $c->reply->file("$dir/trunk-logo.png");
 };
-
 
 get '/index.md' => sub {
   my $c = shift;
@@ -1184,45 +1003,6 @@ Empty lists:
 </ul>
 
 
-@@ follow.html.ep
-% title 'Login to Mastodon Instance';
-<h1>Which account to use?</h1>
-
-<p>Please provide the account you want to use. Do not provide your email
-address: I'd use <em>kensanata@octodon.social</em> instead of
-<em>kensanata@gmail.com</em>, for example. You will be redirected to your
-instance. There, you need to authorize the Trunk application to act on your
-behalf. If you do, Trunk will proceed to follow <%= link_to grab => {name =>
-$name} => begin%><%= $name %><%= end %>. If you prefer not to do that, no
-problem. Just go back to the list and go through the list manually.</p>
-
-%= form_for follow_confirm => begin
-%= text_field 'account', required => undef
-%= hidden_field name => $name
-%= submit_button
-% end
-
-
-@@ follow_confirm.html.ep
-% title 'Confirmation';
-<h1>Please confirm</h1>
-
-<p>We're going to use <em><%= $account %></em> to follow all the accounts in <%=
-link_to grab => {name => $name} => begin%><%= $name %><%= end %>.</p>
-
-<p><%= link_to url_for('auth')->query(account => $account, action => 'follow',
-name => $name) => (class => 'button') => begin %>Let's do this<% end %></p>
-
-<p>If you'd like to help us find the
-<a href="https://alexschroeder.ch/software/Client_authentication_failed">authorisation problems</a>
-we've been having, please use the following link instead:</p>
-
-<p><%= link_to url_for('auth')->query(account => $account, action => 'follow',
-logging => 'ok', name => $name) => (class => 'button') => begin %>Let's log
-this<% end %></p>
-
-
-
 @@ grab.html.ep
 % title 'Grab a List';
 <h1><%= $name %></h1>
@@ -1230,12 +1010,6 @@ this<% end %></p>
 <%== $description %>
 
 <%== $md %>
-
-% if ($mass_follow) {
-<p class="needspace">
-<%= link_to url_for('follow')->query(name => $name) => (class => 'button') => begin %>Follow <%= $name %><% end %>
-</p>
-% }
 
 <ul class="follow">
 % for my $account (@$accounts) {
@@ -1246,31 +1020,6 @@ this<% end %></p>
 %= $account
 </a>
 </li>
-% }
-</ul>
-
-
-@@ follow_done.html.ep
-% title 'Follow a List';
-<h1><%= $name %></h1>
-
-<p>We created the <em><%= $name %></em> list for you. Note that if you visit
-this list in the Mastodon web client, it will appear empty. In fact, this is
-what it will say:</p>
-
-<blockquote>"There is nothing in this list yet. When members of this list post
-new statuses, they will appear here."</blockquote>
-
-<p>Click on the button with the three sliders ("Show settings") and then on
-"Edit lists" and only then will you see the people in the list!</p>
-
-<P>Enjoy! 👍</p>
-
-<p>Results:</p>
-
-<ul>
-% for my $result (@$results) {
-<li><%= $result %></li>
 % }
 </ul>
 

@@ -1,8 +1,8 @@
 # Trunk for Mastodon
 
-Trunk allows you to mass-follow a bunch of people in order to get
-started with [Mastodon](https://joinmastodon.org/). Mastodon is a
-free, open-source, decentralized microblogging network.
+Trunk allows you to follow a bunch of people in order to get started
+with [Mastodon](https://joinmastodon.org/). Mastodon is a free,
+open-source, decentralised microblogging network.
 
 Issues, feature requests and all that: use the
 [Software Wiki](https://alexschroeder.ch/software/Trunk).
@@ -132,7 +132,6 @@ Then use `cpanm` to install the following:
 - `Mastodon::Client`
 - `Text::Markdown`
 - `List::Util`
-- `MCE`
 
 If these modules get installed into `~/perl5` then you need to make
 sure `~/perl5/bin` is in your `PATH` and that `/perl5/lib/perl5` is in
@@ -168,9 +167,6 @@ The keys to set:
   [passphrase](https://mojolicious.org/perldoc/Mojolicious/Guides/FAQ#What-does-Your-secret-passphrase-needs-to-be-changed-mean)
   in case you're wondering about the "Your secret passphrase needs to
   be changed" message in your logs
-* `mass_follow` allows or disallows mass-following (the reason you
-  might want to disallow that is that users keep reporting errors
-  and I don't know how to fix this)
 
 Example setup:
 
@@ -303,31 +299,6 @@ app->start;
 
 Now start this file instead of `trunk.pl` using `hypnotoad` and it
 should still work.
-
-### Bugs
-
-Version 0.015 of `Mastodon::Client` has a bug which you need to fix:
-
-```diff
-diff -u /home/alex/perl5/lib/perl5/Mastodon/Client.pm\~ /home/alex/perl5/lib/perl5/Mastodon/Client.pm
---- /home/alex/perl5/lib/perl5/Mastodon/Client.pm~	2018-08-11 22:22:04.294122849 +0200
-+++ /home/alex/perl5/lib/perl5/Mastodon/Client.pm	2018-08-12 10:26:27.282692089 +0200
-@@ -452,10 +452,10 @@
- }
- 
- # POST requests with no data and a mandatory ID number
--foreach my $pair ([
-+foreach my $pair (
-     [ statuses => [qw( reblog unreblog favourite unfavourite     )] ],
-     [ accounts => [qw( mute unmute block unblock follow unfollow )] ],
--  ]) {
-+  ) {
- 
-   my ($base, $endpoints) = @{$pair};
- 
-
-Diff finished.  Wed Aug 15 09:48:54 2018
-```
 
 ## Troubleshooting
 
