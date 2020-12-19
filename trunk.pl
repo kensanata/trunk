@@ -1115,8 +1115,8 @@ logged, just in case.</p>
 <channel>
 <title>Trunk additions ($name)</title>
 <description>New accounts listed on this instance of Trunk.</description>
-<link><%= url_for('index')->to_abs %></link>
-<atom:link rel="self" type="application/rss+xml" href="<%= url_for('feed')->to_abs %>" />
+<link>https://communitywiki.org/trunk/</link>
+<atom:link rel="self" type="application/rss+xml" href="https://communitywiki.org/trunk/feed" />
 <generator>Trunk</generator>
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 % for my $item (@$items) {
