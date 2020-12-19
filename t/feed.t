@@ -27,6 +27,7 @@ $reviews->spurt('[2020-08-04 11:26:34.58524] [26692] [info] alex added kensanata
 
 $t->get_ok('/feed')
     ->status_is(200)
-    ->text_is('channel title' => 'Trunk additions: all');
+    ->text_is('channel title' => 'Trunk additions: all')
+    ->element_exists('channel item link');
 
 done_testing();

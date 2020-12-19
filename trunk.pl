@@ -285,8 +285,10 @@ sub feed {
     my @lists = split(/, /, $4);
     next if $name and not grep { $_ eq $name } @lists;
     my $dt = DateTime::Format::ISO8601->parse_datetime($date."T".$time);
+    my ($username, $instance) = split(/@/, $account);
     push(@items, { date => DateTime::Format::Mail->format_datetime($dt),
-		   account => $account, lists => \@lists });
+		   account => $account, lists => \@lists,
+		   instance => $instance, username => $username });
     last if @items >= 30;
     $seen{$account} = 1;
   }
@@ -1113,14 +1115,15 @@ logged, just in case.</p>
 @@ feed.rss.ep
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>Trunk additions ($name)</title>
-<description>New accounts listed on this instance of Trunk.</description>
-<link>https://communitywiki.org/trunk/</link>
-<atom:link rel="self" type="application/rss+xml" href="https://communitywiki.org/trunk/feed" />
-<generator>Trunk</generator>
-<docs>http://blogs.law.harvard.edu/tech/rss</docs>
+  <title>Trunk additions: <%= $name %></title>
+  <description>New accounts listed on this instance of Trunk.</description>
+  <link>https://communitywiki.org/trunk/</link>
+  <atom:link rel="self" type="application/rss+xml" href="https://communitywiki.org/trunk/feed" />
+  <generator>Trunk</generator>
+  <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 % for my $item (@$items) {
   <item>
+    <link>https://<%= $item->{instance} %>/users/<%= $item->{username} %></link>
     <pubDate><%= $item->{date} %></pubDate>
     <description><%= $item->{account} %></description>
 % for my $category (@{$item->{lists}}) {
