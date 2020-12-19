@@ -67,7 +67,7 @@ $t->post_ok('/do/describe' => form => {
     ->status_is(200)
     ->text_is('h1' => 'Describe Test')
     ->content_like(qr'Description saved')
-    ->element_exists('a[href=/grab/Test][text()=Check it out]');
+    ->text_is('[href=/grab/Test]' => 'Check it out');
 
 ok(-e $path, "$path exists");
 is($path->slurp, 'YOLO!');
@@ -97,7 +97,7 @@ for my $page (qw(index help request others blacklist grab)) {
       ->status_is(200)
       ->text_is('h1' => "Describe $page")
       ->content_like(qr'Description saved')
-      ->element_exists("a[href=$url][text()=Check it out]");
+      ->text_is("a[href=$url]", "Check it out");
 
   ok(-e $path, "$path exists");
   is($path->slurp, 'Roll a d6!', "$path saved");

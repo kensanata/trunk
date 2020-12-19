@@ -44,7 +44,7 @@ $path2 = Mojo::File->new('Test2.txt');
 $path2->spurt('alex@example.org alex@example.net');
 
 $reviews = Mojo::File->new('reviews');
-$reviews->spurt('{ "alex@example.com": "2019-12-15 by alex" }');
+$reviews->spurt('{ "alex@example.com": "reviewed 2019-12-15 by alex" }');
 
 $t->get_ok('/login' => form => {
   username => 'alex',
