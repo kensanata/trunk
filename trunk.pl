@@ -24,6 +24,8 @@ use Mojo::JSON qw(decode_json encode_json);
 use Text::Markdown 'markdown';
 use Encode qw(decode_utf8 encode_utf8);
 use List::Util qw(shuffle);
+use DateTime::Format::ISO8601;
+use DateTime::Format::Mail;
 use utf8;
 
 # Create a file called trunk.conf in the same directory as trunk.pl and override
@@ -257,6 +259,39 @@ get '/log' => sub {
   $c->render(log => join("\n", @lines[-$n .. -1]));
 };
 
+get '/feed' => sub {
+  my $c = shift;
+  feed($c);
+};
+
+get '/feed/:name' => sub {
+  my $c = shift;
+  feed($c, $c->param('name'));
+};
+
+sub feed {
+  my $c = shift;
+  my $name = shift;
+  my $path = Mojo::File->new($log->path);
+  my @lines = reverse split(/\n/, decode_utf8($path->slurp));
+  my @items;
+  my %seen;
+  for my $line (@lines) {
+    next unless $line =~ /^\[([-0-9]+) ([0-9:]+)[.0-9]*\] \[\d+\] \[[a-z]+\] \S+ added (\S+) to (.*)/;
+    my $date = $1;
+    my $time = $2;
+    my $account = $3;
+    next if $seen{$account};
+    my @lists = split(/, /, $4);
+    next if $name and not grep { $_ eq $name } @lists;
+    my $dt = DateTime::Format::ISO8601->parse_datetime($date."T".$time);
+    push(@items, { date => DateTime::Format::Mail->format_datetime($dt),
+		   account => $account, lists => \@lists });
+    last if @items >= 30;
+    $seen{$account} = 1;
+  }
+  $c->render(template => 'feed', format => 'rss', name => $name || "all", items => \@items);
+};
 
 get '/log/all' => sub {
   my $c = shift;
@@ -1073,6 +1108,28 @@ logged, just in case.</p>
 <li><%= link_to 'Check the log' => 'log' %></li>
 <li><%= link_to 'Logout' => 'logout' %></li>
 </ul>
+
+
+@@ feed.rss.ep
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Trunk additions ($name)</title>
+<description>New accounts listed on this instance of Trunk.</description>
+<link><%= url_for('index') %></link>
+<atom:link rel=\"self\" type=\"application/rss+xml\" href=\"<%= url_for('feed') %>\" />
+<generator>Trunk</generator>
+<docs>http://blogs.law.harvard.edu/tech/rss</docs>
+% for my $item (@$items) {
+  <item>
+    <pubDate><%= $item->{date} %></pubDate>
+    <description><%= $item->{account} %></description>
+% for my $category (@{$item->{lists}}) {
+    <category><%= $category %></category>
+% }
+  </item>
+% };
+</channel>
+</rss>
 
 
 @@ log.html.ep
