@@ -14,7 +14,7 @@ All the other lists are about
 helps you find some new people to follow.
 
 Please remember that we're all
-human and interests change and nobody promised to either an expert on
+human and interests change and nobody promised to either be an expert on
 these topics or to be posting exclusively about these topics. And of
 course, people change, or leave. 🙂
 
@@ -24,7 +24,11 @@ people on these lists.
 
 **If you write** about one or more of these topics and think that
 people wanting to read about the topic might benefit if they followed
-you, consider [volunteering for a list](/trunk/request).
+you, consider [volunteering for a list](/trunk/request). If you don't
+usually post in English, consider the
+[Spanish Trunk](https://trunkesp.chilemasto.casa/).
+
+**If you want to follow** a large number of accounts at once, maybe check out [pytrunk](https://github.com/lots-of-things/pytrunk), a tool from [@will](https://fosstodon.org/@bonkerfield). It uses Trunk's API and gives you a simple interface to decide whether or not to follow an account displayed in your browser. It lets you check who's active, what kind of content they post, you can define a max/min follower count, and a lot of other stuff!
 
 Note that you cannot volunteer other people. People have to volunteer
 themselves. Please encourage them to contact one of the
@@ -41,10 +45,10 @@ ask you to mention just *one* of us. Thank you! 😅
 
 - [@trunk@botsin.space](https://botsin.space/@trunk)
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
-- [@amolith@masto.nixnet.xyz](https://masto.nixnet.xyz/@amolith)
+- [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
+- [@amolith@nixnet.social](https://nixnet.social/@amolith)
 - [@skiring@mastodon.host](https://mastodon.host/@skiring)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
-- [@eloisa@masto.pt](https://masto.pt/@eloisa)
 - [@changeling@tenforward.social](https://tenforward.social/@changeling) 
 
 ## Privacy

@@ -6,4 +6,5 @@
 /queue
 /*.client
 /*.user
-/trunk.log
+/trunk.log*
+/reviews
