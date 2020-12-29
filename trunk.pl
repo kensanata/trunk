@@ -1546,12 +1546,12 @@ talk it over.
 %= check_box account => $account
 % my $url = $urls->{$account};
 % if ($url) {
-%= link_to $account => $url
+<a href="<%= $url %>" target="_blank"><%= $account %></a>
 % } else {
 %= $account
 % }
 </label>
-(<%= link_to url_for('do_search')->query(account => $account) => begin %>search<% end %>)
+(<a href="<%= url_for('do_search')->query(account => $account) %>" target="_blank">search</a>)
 % if ($reviews->{$account}) {
 %= $reviews->{$account}
 % }
