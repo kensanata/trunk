@@ -999,7 +999,7 @@ post '/do/review' => sub {
     # don't mark non-existing accounts as reviewed
     next unless exists $reviews->{$account};
     my $message = "reviewed $today by $user";
-    next if $reviews->{$account}||'' eq $message;
+    next if $reviews->{$account} and $message eq $reviews->{$account}; # unchanged
     $reviews->{$account} = $message;
     $reviewed++;
   }
