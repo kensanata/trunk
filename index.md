@@ -47,7 +47,6 @@ ask you to mention just *one* of us. Thank you! 😅
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
 - [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
 - [@amolith@nixnet.social](https://nixnet.social/@amolith)
-- [@skiring@mastodon.host](https://mastodon.host/@skiring)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
 - [@changeling@tenforward.social](https://tenforward.social/@changeling) 
 
