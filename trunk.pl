@@ -1582,7 +1582,7 @@ talk it over.
 
 @@ login.html.ep
 % layout 'default';
-% title 'Login';
+% title 'Trunk Login';
 <h1>Trunk Login</h1>
 <% if ($c->stash('login') eq 'wrong') { %>
 <p>
