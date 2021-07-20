@@ -1583,7 +1583,7 @@ talk it over.
 @@ login.html.ep
 % layout 'default';
 % title 'Login';
-<h1>Login</h1>
+<h1>Trunk Login</h1>
 <% if ($c->stash('login') eq 'wrong') { %>
 <p>
 <span class="alert">Login failed. Username unknown or password wrong.</span>
