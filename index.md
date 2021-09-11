@@ -48,7 +48,6 @@ ask you to mention just *one* of us. Thank you! 😅
 - [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
 - [@amolith@nixnet.social](https://nixnet.social/@amolith)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
-- [@changeling@tenforward.social](https://tenforward.social/@changeling) 
 
 ## Privacy
 
