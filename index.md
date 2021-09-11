@@ -46,7 +46,8 @@ ask you to mention just *one* of us. Thank you! 😅
 - [@trunk@botsin.space](https://botsin.space/@trunk)
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
 - [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
-- [@amolith@nixnet.social](https://nixnet.social/@amolith)
+- [@amolith@nixnet.social](https://nixnet.social/amolith)  
+  *(if I don't reply within a day or two, please ping me again!)*
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
 
 ## Privacy
