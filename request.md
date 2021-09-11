@@ -21,6 +21,6 @@ doesn't represent an actual, single person to talk to, we'll add you
 to the [Organisations](https://communitywiki.org/trunk/grab/Organisations) list.
 
 Please note that this Trunk instance is for English writers and readers.
-we realize that the Fediverse is multilingual, but at the same time
+We realize that the Fediverse is multilingual, but at the same time
 it's no fun for newbies if the accounts listed write in a language they
 can't read. Hopefully more such sites for different languages will pop up!
