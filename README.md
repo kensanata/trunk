@@ -114,15 +114,18 @@ You need to pass along an object with the following attribute:
 If you want to install it, you need a reasonable Perl installation. If
 this is your only Perl application you're developing, I'm not going to
 bother telling you about [Perlbrew](https://perlbrew.pl/), which
-allows you to install multiple versions of Perl. I'm just going to
-assume you have a system with Perl installed.
+allows you to install multiple versions of Perl, or the use of `cpanm`
+instead of `cpan`. I'm just going to assume you have a system with
+Perl installed.
 
-The first thing I suggest you do is install a better tool to install
-your dependencies: `cpanm` from the `App::cpanminus` package.
-
-- [Installing App::cpanminus](https://metacpan.org/pod/App::cpanminus#INSTALLATION)
-
-Then use `cpanm` to install the following:
+If you can, install Perl modules using your package manager.
+Otherwise, use `cpan` to install them. You can mix and match, but if
+you use `cpan` it will pull in all the dependencies using `cpan` and
+ignore the package manager. Since most likely there are unpackaged
+modules, you always end up using `cpan`. It might not be worth the
+time to search all the modules using your package manager (or use
+`cpan2deb` to turn missing modules from CPAN into Debian packages, for
+example).
 
 - `Mojolicious`
 - `Mojolicious::Plugin::Config`
@@ -131,15 +134,14 @@ Then use `cpanm` to install the following:
 - `Minion::Backend::SQLite`
 - `Mastodon::Client`
 - `Text::Markdown`
-- `List::Util`
 
 If these modules get installed into `~/perl5` then you need to make
 sure `~/perl5/bin` is in your `PATH` and that `/perl5/lib/perl5` is in
 your `PERL5LIB`. At the end of my `~/.bashrc`, for example:
 
 ```bash
-PATH="/home/alex/perl5/bin${PATH:+:${PATH}}"; export PATH;
-PERL5LIB="/home/alex/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+PATH="${HOME}/perl5/bin${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="${HOME}/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
 ```
 
 You should now be able to run the web application. From the working
