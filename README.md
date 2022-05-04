@@ -132,6 +132,8 @@ example).
 - `Mojolicious::Plugin::Authentication`
 - `Mojolicious::Plugin::Minion`
 - `Minion::Backend::SQLite`
+- `DateTime::Format::ISO8601`
+- `DateTime::Format::Mail`
 - `Mastodon::Client`
 - `Text::Markdown`
 
