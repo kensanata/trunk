@@ -1042,6 +1042,40 @@ Empty lists:
 
 @@ grab.html.ep
 % title 'Grab a List';
+
+%= javascript begin
+function redirect_to (host, account) {
+  var XHR = new XMLHttpRequest();
+  XHR.addEventListener('load', follow_redirect);
+  XHR.addEventListener('error', function(event) {
+    alert('Unfortunately the connection to the host ' + host + ' failed.');
+  });
+  XHR.open('GET', 'https://' + host + '/.well-known/webfinger?resource=acct:' + account + '@' + host);
+  XHR.setRequestHeader('Accept', 'application/jrd+json, application/json');
+  XHR.responseType = 'document';
+  XHR.send();
+}
+
+function follow_redirect (event) {
+  if (event.target.status != 200) {
+    alert('Unfortunately the host returned ' + event.target.status + ' ' + event.target.statusText
+          + ' for ' + event.target.responseURL);
+    return;
+  }
+  const json = event.target.responseXML;
+  const obj = JSON.parse(json);
+  for (var i = 0; i < json.links; i++) {
+    const link = json.links;
+    if (link.rel == "http://webfinger.net/rel/profile-page"
+	&& link.type == "text/html") {
+      window.location.replace(link.href);
+      return;
+    }
+  }
+  alert('Unfortunately the host ' + host + ' did not return a profile page for ' + account + '.');
+}
+% end
+
 <h1><%= $name %></h1>
 
 <%== $description %>
@@ -1053,9 +1087,8 @@ Empty lists:
 <li>
 % my ($username, $instance) = split(/@/, $account);
 <a href="https://<%= $instance %>/users/<%= $username %>/remote_follow" class="button">Follow</a>
-<a href="https://<%= $instance %>/users/<%= $username %>">
-%= $account
-</a>
+<a href="https://<%= $instance %>/users/<%= $username %>"><%= $account %></a>
+<a href="javascript:redirect_to('<%= $instance %>', '<%= $username %>')">R</a>
 </li>
 % }
 </ul>
