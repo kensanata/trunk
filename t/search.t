@@ -28,7 +28,7 @@ $t->get_ok('/search')
 $t->ua->max_redirects(1);
 $t->get_ok('/search')
     ->status_is(200)
-    ->text_is('h1' => 'Login')
+    ->text_is('h1' => 'Trunk Login')
     ->element_exists('form[action=/login]')
     ->element_exists('label[for=username]')
     ->element_exists('input[name=username][type=text]')

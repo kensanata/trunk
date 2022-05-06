@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# Copyright (C) 2018 Alex Schroeder <alex@gnu.org>
+# Copyright (C) 2018–2022 Alex Schroeder <alex@gnu.org>
 
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -17,23 +17,13 @@
 use Test::More;
 use Test::Mojo;
 use Mojo::File;
+use utf8;
 
 require './trunk.pl';
 
 my $t = Test::Mojo->new;
 
-$t->get_ok('/create')
-    ->status_is(302)
-    ->header_is('/login');
-
 $t->ua->max_redirects(1);
-$t->get_ok('/create')
-    ->status_is(200)
-    ->text_is('h1' => 'Trunk Login')
-    ->element_exists('form[action=/login]')
-    ->element_exists('label[for=username]')
-    ->element_exists('input[name=username][type=text]')
-    ->element_exists('input[name=action][type=hidden][value=create]');
 
 $t->app->config({users=>{alex=>'let me in'}});
 
@@ -43,18 +33,38 @@ $t->get_ok('/login' => form => {
   action => 'create'})
     ->status_is(200)
     ->text_is('h1' => 'Create a list')
-    ->element_exists('form[action=/do/list]')
-    ->element_exists('label[for=name]')
-    ->element_exists('input[name=name][type=text]');
+    ->element_exists('form[action=/do/list]');
 
-$path = Mojo::File->new('Test.txt');
+$path = Mojo::File->new('Schröder.txt');
 unlink($path) if -e $path;
 
-$t->post_ok('/do/list' => form => { name => 'Test' })
+$t->post_ok('/do/list' => form => { name => 'Schröder' })
     ->status_is(200)
     ->text_is('h1' => 'Create a list')
-    ->content_like(qr'The list <em>Test</em> was created.');
+    ->content_like(qr'The list <em>Schröder</em> was created.');
 
-ok(-e $path, 'Test.txt exists');
+ok(-e $path, 'Schröder.txt exists');
+
+$path = Mojo::File->new('Schröder.md');
+unlink($path) if -e $path;
+
+$t->post_ok('/do/describe' => form => {
+  name => 'Schröder',
+  description => 'Schröder!',
+  list => 1})
+    ->status_is(200)
+    ->text_is('h1' => 'Describe Schröder')
+    ->content_like(qr'Description saved')
+    ->text_is('[href=/grab/Schr%C3%B6der]' => 'Check it out');
+
+$t->post_ok('/do/add' => form => {
+  account => 'one@two',
+  Schröder => 'on' })
+    ->status_is(200)
+    ->text_is('h1' => 'Add an account')
+    ->content_like(qr'The account one@two was added to the following lists:\s+Schröder');
+
+$path = Mojo::File->new('Schröder.txt');
+is($path->slurp(), "one\@two\n", 'account saved');
 
 done_testing();
