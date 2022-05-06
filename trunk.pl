@@ -103,9 +103,9 @@ get '/' => sub {
     my $size = -s $file;
     my $name = Mojo::File->new($file)->basename('.txt');
     if ($size) {
-      push(@lists, $name);
+      push(@lists, decode_utf8($name));
     } else {
-      push(@empty_lists, $name);
+      push(@empty_lists, decode_utf8($name));
     }
   }
   $c->render(template => 'index', md => $md,
@@ -175,7 +175,7 @@ get '/request' => sub {
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
+    push(@lists, decode_utf8($name));
   }
   $c->render(template => 'request_add',
 	     md => $md,
@@ -313,7 +313,7 @@ get '/add' => sub {
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
+    push(@lists, decode_utf8($name));
   }
   $c->render(template => 'add', lists => \@lists);
 };
@@ -496,7 +496,7 @@ any '/do/remove' => sub {
     next unless -s $file;
     my $path = Mojo::File->new($file);
     my $name = $path->basename('.txt');
-    push(@lists, $name) if remove_account($path, $account);
+    push(@lists, decode_utf8($name)) if remove_account($path, $account);
   }
   if (@lists) {
     $c->render(template => 'do_remove', account => $account, lists => \@lists);
@@ -531,7 +531,7 @@ any '/do/search' => sub {
     my $path = Mojo::File->new($file);
     my $name = $path->basename('.txt');
     for my $account (grep(/$account/i, split(" ", $path->slurp))) {
-      push(@{$accounts{$account}}, $name);
+      push(@{$accounts{$account}}, decode_utf8($name));
     }
   }
   if (keys %accounts) {
@@ -597,7 +597,7 @@ get '/rename' => sub {
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
+    push(@lists, decode_utf8($name));
   }
   $c->render(template => 'rename', lists => \@lists);
 };
@@ -659,7 +659,7 @@ get '/describe' => sub {
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
+    push(@lists, decode_utf8($name));
   }
   $c->render(template => 'describe', lists => \@lists);
 };
@@ -706,7 +706,7 @@ get '/overview' => sub {
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
+    push(@lists, decode_utf8($name));
   }
   $c->render(template => 'overview', lists => \@lists);
 };
@@ -809,7 +809,7 @@ get '/api/v1/list' => sub {
   my @lists;
   for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
     my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, $name);
+    push(@lists, decode_utf8($name));
   }
   $c->render(json => \@lists);
 };
