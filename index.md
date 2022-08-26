@@ -14,8 +14,7 @@ All the other lists are about
 helps you find some new people to follow.
 
 Please remember that we're all
-human and interests change and nobody promised to either be an expert on
-these topics or to be posting exclusively about these topics. And of
+human; interests change, and nobody promised to either be an expert on these topics or to be posting exclusively about these topics. And of
 course, people change, or leave. 🙂
 
 **If you want to read** about one or more of these topics, all you
@@ -26,7 +25,8 @@ people on these lists.
 people wanting to read about the topic might benefit if they followed
 you, consider [volunteering for a list](/trunk/request). If you don't
 usually post in English, consider the
-[Spanish Trunk](https://trunkesp.chilemasto.casa/).
+[Spanish Trunk](https://trunkesp.chilemasto.casa/)
+or the [French Trunk](https://trunk.whidou.fr/).
 
 **If you want to follow** a large number of accounts at once, maybe check out [pytrunk](https://github.com/lots-of-things/pytrunk), a tool from [@will](https://fosstodon.org/@bonkerfield). It uses Trunk's API and gives you a simple interface to decide whether or not to follow an account displayed in your browser. It lets you check who's active, what kind of content they post, you can define a max/min follower count, and a lot of other stuff!
 
@@ -43,11 +43,8 @@ the administrators via Mastodon.
 As *Trunk* and the number of requests is growing, we kindly
 ask you to mention just *one* of us. Thank you! 😅
 
-- [@trunk@botsin.space](https://botsin.space/@trunk)
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
 - [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
-- [@amolith@nixnet.social](https://nixnet.social/amolith)  
-  *(if I don't reply within a day or two, please ping me again!)*
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
 
 ## Privacy
