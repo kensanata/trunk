@@ -1052,7 +1052,6 @@ Empty lists:
 % for my $account (@$accounts) {
 <li>
 % my ($username, $instance) = split(/@/, $account);
-<a href="https://<%= $instance %>/users/<%= $username %>/remote_follow" class="button">Follow</a>
 <a href="https://<%= $instance %>/users/<%= $username %>">
 %= $account
 </a>
