@@ -126,6 +126,17 @@ get '/grab/:name' => sub {
 	     description => $description, md => $md);
 } => 'grab';
 
+get '/csv/#name' => sub {
+  my $c = shift;
+  my $name = $c->param('name');
+  $name =~ s/\.csv$//;
+  my $path = Mojo::File->new("$dir/$name.txt");
+  my @accounts = shuffle split(" ", $path->slurp);
+  my $text = "Account address,Show boosts\n"
+      . join("\n", map { "$_,true" } @accounts) . "\n";
+  $c->render(text => decode_utf8($text), format => 'txt');
+} => 'csv';
+
 get '/logo' => sub {
   my $c = shift;
   $c->reply->file("$dir/trunk-logo.png");
