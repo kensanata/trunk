@@ -119,24 +119,12 @@ get '/grab/:name' => sub {
   my @accounts = shuffle split(" ", $path->slurp);
   my $description = to_markdown("$name.md");
   my $md = to_markdown('grab.md');
-  $md =~ s/\$name_encoded/url_escape(encode_utf8($name))/ge;
+  $md =~ s/\$name_encoded/url_escape($name)/ge;
   $md =~ s/\$uri/app->config('uri')/ge;
   $md =~ s/\$name/$name/g;
   $c->render(template => 'grab', name => $name, accounts => \@accounts,
 	     description => $description, md => $md);
 } => 'grab';
-
-get '/csv/#name' => sub {
-  my $c = shift;
-  my $name = $c->param('name');
-  $name =~ s/\.csv$//;
-  my $path = Mojo::File->new("$dir/$name.txt");
-  my @accounts = shuffle split(" ", $path->slurp);
-  my $text = "Account address,Show boosts\n"
-      . join("\n", map { "$_,true" } @accounts) . "\n";
-  $c->res->headers->content_type('text/csv');
-  $c->render(text => decode_utf8($text), format => 'txt');
-} => 'csv';
 
 get '/logo' => sub {
   my $c = shift;
