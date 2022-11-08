@@ -29,7 +29,7 @@ people on these lists.
 people wanting to read about the topic might benefit if they followed
 you, consider [volunteering for a list](/trunk/request).
 
-If you don't usually post in English, consider the [Spanish Trunk](https://trunkesp.chilemasto.casa/) or the [French Trunk](https://trunk.whidou.fr/).
+If you don't usually post in English, consider the [Dutch Trunk](https://trunk-mastodon.nl/), [Spanish Trunk](https://trunkesp.chilemasto.casa/) or the [French Trunk](https://trunk.whidou.fr/).
 
 If you represent an organisation (even a company of one), then you need to find other ways to spread the word. This is not free ad space. We're here to connect newbies with *people*. The only exception we have is our [list of Organizations](https://communitywiki.org/trunk/grab/Organisations).
 
@@ -45,6 +45,7 @@ ask you to mention just *one* of us. Thank you! 😅
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
 - [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
+- [@jonah@neat.computer](https://mastodon.neat.computer/@jonah)
 
 ## Privacy
 
