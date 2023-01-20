@@ -43,7 +43,7 @@ As *Trunk* and the number of requests is growing, we kindly
 ask you to mention just *one* of us. Thank you! 😅
 
 - [@kensanata@octodon.social](https://octodon.social/@kensanata)
-- [@mayana@dragonscave.space](https://dragonscave.space/@mayana)
+- [@Mayana@dragonscave.space](https://dragonscave.space/@Mayana)
 - [@carbontwelve@phpc.social](https://phpc.social/@carbontwelve)
 - [@jonah@neat.computer](https://mastodon.neat.computer/@jonah)
 
