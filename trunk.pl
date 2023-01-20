@@ -196,10 +196,10 @@ get 'do/request' => sub {
   local $" = ", ";
   my $admins = administrators();
   my $lucky = $admins->[int(rand(@$admins))];
-  my $text = url_escape("$lucky Please add me to @lists. #Trunk");
-  my $url = "https://$instance/share?text=$text";
+  my $msg = "$lucky Please add me to @lists. #Trunk";
+  my $url = "https://$instance/share?text=" . url_escape($msg);
   $c->render(template => 'request_done',
-	     url => $url);
+	     url => $url, msg => $msg);
 } => 'do_request';
 
 plugin 'authentication', {
@@ -1087,6 +1087,14 @@ your request ready to toot. 📯</p>
 
 <p><%= link_to $url => (class => 'button') => begin %>Add Me<% end %></p>
 
+<p>If that doesn't work, you can also copy and paste the following post to send
+as a direct message:</p>
+
+<blockquote><%= $msg %></blockquote>
+
+<p>Please don't make any changes to the text: We're going to paste it into a
+form and any changes you make will force an admin to select all those checkboxes
+again, by hand. And you already know how unwieldy this can be… 😒</p>
 
 @@ admin.html.ep
 % title 'Trunk Admins';
