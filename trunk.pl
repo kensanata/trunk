@@ -90,6 +90,21 @@ sub lists {
   return [@lists, @empty_lists];
 }
 
+sub parse_lists {
+  my $str = shift;
+  # we cannot just split on ,\s+ because list names contain commas
+  my $lists = lists();
+  my @lists;
+  for my $list (@$lists) {
+    my $re = quotemeta($list);
+    if ($str =~ s/(,\s+|^)?$re(,\s+|$)?/$1/) {
+      push(@lists, $list);
+    }
+  }
+  push(@lists, split(/,\s+/, $str)) if $str;
+  return @lists;
+}
+
 get '/' => sub {
   my $c = shift;
   # if we're here because of the redirect uri
@@ -279,7 +294,7 @@ sub feed {
     my $time = $2;
     my $account = $3;
     next if $seen{$account};
-    my @lists = split(/, /, $4);
+    my @lists = parse_lists($4);
     next if $name and not grep { $_ eq $name } @lists;
     my $dt = DateTime::Format::ISO8601->parse_datetime($date."T".$time);
     my ($username, $instance) = split(/@/, $account);
@@ -362,12 +377,13 @@ post '/do/add' => sub {
   my @lists = sort { lc($a) cmp lc($b) } keys %$hash;
   if ($c->param('message')
       && $c->param('message') =~ /Please add me to ([^.]+)\./) {
-    push(@lists, split(/,\s+/, $1));
+    my $lists = $1;
+    $lists =~ s/&amp;/&/g;
+    push(@lists, parse_lists($lists));
   }
   my @good;
   my @bad;
   for my $name (@lists) {
-    $name =~ s/&amp;/&/g;
     if (add_account(Mojo::File->new("$dir/$name.txt"), $account)) {
       push(@good, $name);
     } else {
@@ -961,7 +977,6 @@ app->defaults(layout => 'default');
 app->start;
 
 __DATA__
-
 
 @@ index.html.ep
 % title 'Trunk for the Fediverse';

@@ -76,4 +76,33 @@ $t->post_ok('/do/add' => form => { account => 'one@two',
 is($path->slurp(), "one\@two\n", 'no duplicates saved');
 ok(! -e $path2, "missing list was not created");
 
+# create empty list with a comma
+$path3 = Mojo::File->new('A, B.txt');
+$path3->spurt('');
+
+$t->post_ok('/do/add' => form => { message => '@one@two Please add me to A, B, C.' })
+    ->status_is(200)
+    ->text_is('h1' => 'Add an account')
+    ->content_like(qr'not added.*:\s+C's);
+
+is($path3->slurp(), "one\@two\n", 'account saved');
+
+$path3->spurt('');
+
+$t->post_ok('/do/add' => form => { message => '@one@two Please add me to D, A, B, C.' })
+    ->status_is(200)
+    ->text_is('h1' => 'Add an account')
+    ->content_like(qr'not added.*:\s+D, C's);
+
+is($path3->slurp(), "one\@two\n", 'account saved');
+
+$path3->spurt('');
+
+$t->post_ok('/do/add' => form => { message => '@one@two Please add me to D, A, B.' })
+    ->status_is(200)
+    ->text_is('h1' => 'Add an account')
+    ->content_like(qr'not added.*:\s+D's);
+
+is($path3->slurp(), "one\@two\n", 'account saved');
+
 done_testing();
