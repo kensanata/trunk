@@ -74,6 +74,22 @@ sub error {
   return 0;
 }
 
+sub lists {
+  my @lists;
+  my @empty_lists;
+  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
+    my $size = -s $file;
+    my $name = Mojo::File->new($file)->basename('.txt');
+    if ($size) {
+      push(@lists, decode_utf8($name));
+    } else {
+      push(@empty_lists, decode_utf8($name));
+    }
+  }
+  return \@lists, \@empty_lists if wantarray;
+  return [@lists, @empty_lists];
+}
+
 get '/' => sub {
   my $c = shift;
   # if we're here because of the redirect uri
@@ -97,19 +113,9 @@ get '/' => sub {
     }
   }
   my $md = to_markdown('index.md');
-  my @lists;
-  my @empty_lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $size = -s $file;
-    my $name = Mojo::File->new($file)->basename('.txt');
-    if ($size) {
-      push(@lists, decode_utf8($name));
-    } else {
-      push(@empty_lists, decode_utf8($name));
-    }
-  }
+  my ($lists, $empty_lists) = lists();
   $c->render(template => 'index', md => $md,
-	     lists => \@lists, empty_lists => \@empty_lists);
+	     lists => $lists, empty_lists => $empty_lists);
 } => 'index';
 
 get '/grab/:name' => sub {
@@ -172,14 +178,9 @@ sub administrators {
 get '/request' => sub {
   my $c = shift;
   my $md = to_markdown('request.md');
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, decode_utf8($name));
-  }
   $c->render(template => 'request_add',
 	     md => $md,
-	     lists => \@lists);
+	     lists => scalar(lists()));
 };
 
 get 'do/request' => sub {
@@ -310,12 +311,7 @@ get '/add' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'add'));
   }
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, decode_utf8($name));
-  }
-  $c->render(template => 'add', lists => \@lists);
+  $c->render(template => 'add', lists => scalar(lists()));
 };
 
 
@@ -594,12 +590,7 @@ get '/rename' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'rename'));
   }
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, decode_utf8($name));
-  }
-  $c->render(template => 'rename', lists => \@lists);
+  $c->render(template => 'rename', lists => scalar(lists()));
 };
 
 
@@ -656,12 +647,7 @@ get '/describe' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'describe'));
   }
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, decode_utf8($name));
-  }
-  $c->render(template => 'describe', lists => \@lists);
+  $c->render(template => 'describe', lists => scalar(lists()));
 };
 
 
@@ -703,12 +689,7 @@ get '/overview' => sub {
   if (not $c->is_user_authenticated()) {
     return $c->redirect_to($c->url_for('login')->query(action => 'overview'));
   }
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, decode_utf8($name));
-  }
-  $c->render(template => 'overview', lists => \@lists);
+  $c->render(template => 'overview', lists => scalar(lists()));
 };
 
 sub overview {
@@ -806,12 +787,7 @@ get '/do/overview' => sub {
 
 get '/api/v1/list' => sub {
   my $c = shift;
-  my @lists;
-  for my $file (sort { lc($a) cmp lc($b) } <"$dir"/*.txt>) {
-    my $name = Mojo::File->new($file)->basename('.txt');
-    push(@lists, decode_utf8($name));
-  }
-  $c->render(json => \@lists);
+  $c->render(json => scalar(lists()));
 };
 
 get '/api/v1/list/:name' => sub {
