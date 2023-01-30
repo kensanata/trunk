@@ -74,7 +74,7 @@ is($path->slurp, 'YOLO!');
 
 my $c = $t->app->build_controller;
 
-for my $page (qw(index help request others blacklist grab)) {
+for my $page (qw(index help request others denylist grab)) {
 
   # unlink the description of a special file
   $path = Mojo::File->new("$page.md");
