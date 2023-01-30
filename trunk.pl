@@ -142,7 +142,6 @@ get '/index.md' => sub {
   $c->reply->file("$dir/index.md");
 };
 
-
 get '/admin' => sub {
   my $c = shift;
   $c->render();
@@ -223,7 +222,6 @@ plugin 'authentication', {
     },
 };
 
-
 get '/login' => sub {
   my $c = shift;
   my $action = $c->param('action');
@@ -241,13 +239,11 @@ get '/login' => sub {
   $c->render(template => 'login', action => $action);
 };
 
-
 get "/logout" => sub {
   my $self = shift;
   $self->logout();
   $self->redirect_to('index');
 } => 'logout';
-
 
 get '/log' => sub {
   my $c = shift;
@@ -305,7 +301,6 @@ get '/log/all' => sub {
   $c->render(text => decode_utf8($path->slurp), format => 'txt');
 } => 'log_all';
 
-
 get '/add' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -313,7 +308,6 @@ get '/add' => sub {
   }
   $c->render(template => 'add', lists => scalar(lists()));
 };
-
 
 sub backup {
   my $path = shift;
@@ -393,7 +387,6 @@ post '/do/add' => sub {
   $c->render(template => 'do_add', account => $account, good => \@good, bad => \@bad);
 } => 'do_add';
 
-
 sub bot_reply {
   my $c = shift;
   my $account = shift;
@@ -449,7 +442,6 @@ sub bot_reply {
   }
 }
 
-
 get '/remove' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -458,7 +450,6 @@ get '/remove' => sub {
   my $account = $c->param('account');
   $c->render(template => 'remove', account => $account);
 };
-
 
 sub remove_account {
   my $path = shift;
@@ -501,7 +492,6 @@ any '/do/remove' => sub {
   }
 } => 'do_remove';
 
-
 get '/search' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -509,7 +499,6 @@ get '/search' => sub {
   }
   $c->render(template => 'search');
 };
-
 
 any '/do/search' => sub {
   my $c = shift;
@@ -537,9 +526,6 @@ any '/do/search' => sub {
   }
 } => 'do_search';
 
-
-
-
 get '/denylist' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -551,8 +537,6 @@ get '/denylist' => sub {
 	     md => $md);
 } => 'denylist';
 
-
-
 get '/create' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -560,7 +544,6 @@ get '/create' => sub {
   }
   $c->render(template => 'create');
 };
-
 
 post '/do/list' => sub {
   my $c = shift;
@@ -584,7 +567,6 @@ post '/do/list' => sub {
   $c->render(template => 'do_create', name => $name);
 } => 'do_create';
 
-
 get '/rename' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -592,7 +574,6 @@ get '/rename' => sub {
   }
   $c->render(template => 'rename', lists => scalar(lists()));
 };
-
 
 post '/do/rename' => sub {
   my $c = shift;
@@ -641,7 +622,6 @@ post '/do/rename' => sub {
   $c->render(template => 'do_rename', old_name => $old_name, new_name => $new_name);
 } => 'do_rename';
 
-
 get '/describe' => sub {
   my $c = shift;
   if (not $c->is_user_authenticated()) {
@@ -649,7 +629,6 @@ get '/describe' => sub {
   }
   $c->render(template => 'describe', lists => scalar(lists()));
 };
-
 
 post '/do/describe' => sub {
   my $c = shift;
@@ -784,7 +763,6 @@ get '/do/overview' => sub {
   $c->render(template => 'do_overview', name => $name, accounts => \@results);
 } => 'do_overview';
 
-
 get '/api/v1/list' => sub {
   my $c = shift;
   $c->render(json => scalar(lists()));
@@ -798,8 +776,6 @@ get '/api/v1/list/:name' => sub {
   my @accounts = map { { acct => $_ } } sort { lc($a) cmp lc($b) } split(" ", $path->slurp);
   $c->render(json => \@accounts);
 };
-
-
 
 sub load_queue {
   my $path = Mojo::File->new("$dir/queue");
@@ -902,8 +878,6 @@ get '/queue/delete' => sub {
     error($c, "$acct not found in the queue");
   }
 } => 'queue_delete';
-
-
 
 sub urls {
   my %urls;
