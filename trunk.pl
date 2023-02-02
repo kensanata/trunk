@@ -95,7 +95,8 @@ sub parse_lists {
   # we cannot just split on ,\s+ because list names contain commas
   my $lists = lists();
   my @lists;
-  for my $list (@$lists) {
+  # start looking for the longer list names, first
+  for my $list (sort { length($b) <=> length($a) } @$lists) {
     my $re = quotemeta($list);
     if ($str =~ s/(,\s+|^)?$re(,\s+|$)?/$1/) {
       push(@lists, $list);

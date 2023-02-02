@@ -76,6 +76,17 @@ $t->post_ok('/do/add' => form => { account => 'one@two',
 is($path->slurp(), "one\@two\n", 'no duplicates saved');
 ok(! -e $path2, "missing list was not created");
 
+# create a list that is a superset of an existing list
+$path3 = Mojo::File->new('Test Driven Design.txt');
+$path3->spurt('');
+
+$t->post_ok('/do/add' => form => { message => '@one@two Please add me to Test Driven Design.' })
+    ->status_is(200)
+    ->text_is('h1' => 'Add an account')
+    ->content_like(qr'added.*:\s+Test Driven Design's);
+
+is($path3->slurp(), "one\@two\n", 'account saved');
+
 # create empty list with a comma
 $path3 = Mojo::File->new('A, B.txt');
 $path3->spurt('');
